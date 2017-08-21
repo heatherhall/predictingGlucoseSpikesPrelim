@@ -1,19 +1,98 @@
 ---
-title: "Home"
+title: "Project Summary"
 output:
   html_document:
     toc: false
 ---
 
-The goal of this new template is to simplify the setup and maintenance of a research website.
-Specifically,
+<!-- The goal of this new template is to simplify the setup and maintenance of a research website. -->
+<!-- Specifically, -->
 
-*  Easier to build and extend the website using the new tools in the [rmarkdown][] package and [latest RStudio release][rstudio]
-*  Easier to deploy the website with Git and GitHub by only using one branch
+<!-- *  Easier to build and extend the website using the new tools in the [rmarkdown][] package and [latest RStudio release][rstudio] -->
+<!-- *  Easier to deploy the website with Git and GitHub by only using one branch -->
 
-[rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
-[rstudio]: https://www.rstudio.com/products/rstudio/download/preview/
+<!-- [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm -->
+<!-- [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/ -->
+
+
+
+## 1. INTRODUCTION
+
+The main purpose of this project was to identify dietary factors that contribute to spikes in blood sugar levels for a pre-diabetic individual. Four models were used to predict height of blood sugar spikes: linear regression, weighted k-nearest neighbor, random forest, and boosted regression. Each model was tuned to optimize the root mean squared error. The prediction results of these models is reported in predictive.txt.
+
+
+![**Figure 1: Representative Day in Data Set** Blood sugar levels are shown varying over a single day with red and blue dots representing spikes and minimums, respectively. The approximate time windows for which dietary information is collected for each blood sugar spike are shown alternating in yellow and purple. As shown, the food entered into the dietary log (shown here with black lines) tends to fall in the windows prior to each blood guar spike. Note that some spikes have no dietary information, which may be the result of missing diet log information and so these windows were discarded from the models.](figures/cgmExample.png)
+
+## 2. DATASET
+
+The dataset consists of continuous blood sugar levels and detailed time-stamped diet logs for one pre-diabetic individual. There is also data available for several individuals and other health related factors, but I could not get access to use this data in time to submit this project. Before preprocessing, the there was two months of data consisting of 14,373 blood sugar measurements taken every five minutes and 168 diet/food entries. Note that that these numbers represent the data after removing travel days to avoid discrepancies between time zones. 
+
+## 3. DATA PREPROCESSING
+
+In order to properly relate the two datasets, the blood sugar measurements were compressed into minimum and maximum blood sugar levels, with maximum values hereby referred to as “spikes.” Windows were created starting from thirty minutes before a blood sugar level minimum until a spike, assuming that only events in this time window affected the spike. From this only windows that contained dietary log information were used to build models. This outcome variable was chosen because the height of the spike appeared to be both normally distributed and independent. See Figure 1 one the next for a pictorial representation. After processing, there were 94 glucose spikes with dietary information.
 
 
 Click on this [link](0_preprocessing.html) to see my results. 
 <!-- Displays message on index page: Click on this link to see my results. -->
+
+
+## 4. FEATURE SELECTION 
+
+The diet logs contain 19 primary attributes relating to nutritional content and food identity. Of these features, many had missing information (e.g. vitamin B is not recorded for all food) or were not thought to contribute to blood sugar levels (e.g. total fat) and so were not included. The remaining variables included calories, carbohydrates, sugar, fiber, food group, and food subtype. There were seven groups and one hundred subtypes recorded in the diet log, some of which were rarely recorded and others not thought to be be involved in blood sugar levels. Since limited observations are available, only the presence of most common groups/subtypes known to influence blood sugar were used as attributes: wine, banana, inulin (fiber), grain, and fruit.
+
+
+## 5. DATA TRANSFORMATION
+
+Many of the features selected from the log were correlated, such as sugar, fiber, and carbohydrates. In order to reduce correlated predictors, glycemic index was used to encompass all three variables (glycemic index = carbohydrates – fiber – sugar alcohols). Since there is some dispute over whether carbohydrate load or glycemic index is most predictive of blood sugar levels, bother were included in the models. Additionally, given the interplay of fiber and glucose in blood sugar levels, eating a diversity of food may play a role in blood sugar levels and diversity of the diet was included in the model (number of food groups per window)
+
+Timing of meals has been reported to affect blood sugar spikes and so several predictors were added to model this phenomenon. Time of day (coded as morning vs not) was included in the model since the subject recorded noticing correlation in blood sugar spikes and mornings. Finally, time since the last meal was included to represent consistency of meal times.  
+
+
+![**Figure 2: Relationship between predictors and outcome.**  Y-axis shows the height of the blood  sugar spike, while the x-axis shows  each predictor. Diversity and inulin  appear to reduce the height of the  blood sugar spike, while  carbohydrates time since last meal  appear to increase the height of the  blood sugar spike. ](figures/predictorsVsOutcome.png)
+
+## 6. DATA MINING
+
+Prior to building models, the predictors were checked for interactions through graphing and assessing the significance of each interaction using a bonferroni corrected Pearson correlation test (Table 1). All of the predictors showed some significant interaction with another predictor, however, many of these correlation values were week.  Only significant interactions with correlation coefficients greater than 0.5 were used in the models.
+
+
+![**Table 1: Interactions  Between Predictors:** All of the predictors used for this  model had some form of significant  interaction with another predictor.  These interaction terms were used in  the models and likely reduced the  ability of each model to accurately  predict the height of the glucose spike.  Once more predictors are included in  the model, such as blood pressure  and activity, the predictive power of  these models will likely increase. ](figures/interactions)
+
+No additional transformations were applied to the predictors, with the exception of the transformations described previously. Many transformations were attempted (log, exponentials, factors), but the best relationships appeared to be linear as shown. The relationships appeared weak, but appeared significant enough to include all predictors in the models. 
+
+
+
+###  6.1 LINEAR REGRESSION
+
+The linear relationship between the predictors and the outcome suggested that a simple linear model may best fit the data. Before fitting a linear regression model, best subset selection was performed since the number of predictors, including interactions, was more than 10% of the observations. The regsubsets() function from the “leaps” package in R was used to select the best subset predictors using the Cp estimate of MSE on the entire dataset (Figure 3). The selected predictors were then used to calculate the linear regression model using the lm() package provided by R. 
+
+
+![**Figure 3: Best Subset Selection for Linear Regression** The lowest Cp estimate of MSE for the linear model using best subset selection was the model using 4 predictors (as shown by the red dot). These predictors were banana, wine, glycemicIndex:fruit, glycemicIndex:inulin.](figures/bestSubsetSelection.png)
+
+###  6.2 K-NEAREST NEIGHBOR
+
+In order to determine test a model with more flexibility than linear regression, k-nearest neighbor was first attempted to fit the data. The number of clusters for the model was chosen using the function train.kknn() from the R package “kknn,” selecting up to 21 clusters with an “optimal” kernel for the search. For the entire dataset, the mean squared error started to plateau around 11 clusters (Figure 4). Thus, a k-nearest neighbor model with k = 11 was built using the function kknn() from the same package. This model included all of the predictors and all significant interactions described above (see DATA MINING), but forward selection will be used in the future to determine which predictors to include in the model 
+
+
+![**Figure 4: Selecting number of clusters for K-nearest neighbor.** The MSE for a model of the entire dataset begins to plateau at k = 11, highlighted by the red dot.](figures/optimizingK.png)
+### 6.3 RANDOM FOREST 
+
+Random forest were chosen as the third model in order to try a tree-based model for fitting the data. The randomForest() function from the R package “randomForest” was used to build the model. This function performs out-of-bag validation to select predictors for the model and so all predictors and interactions described above (see DATA MINING) were included. 
+
+
+![**Figure 5: Most Influential Variables for Random Forest** Pictured here is the relatively importance of the variables in random forest (above) and boosting (right). The %IncMSE is increase in MSE upon removing the variable from the model and IncNodePurity is the decrease in node purity upon removing the variable from the model. The time for a spike to occur and the time since the last meal are the most important predictors of the height of a glucose spike in this model.](figures/variableImportanceRF.png)
+
+### 6.4 BOOSTED REGRESSION
+
+Boosted regression was used to attempt to build a more robust model from the weak predictors in the dataset. The function gbm() from the R package “gmb” was used to generate the model. The value of lambda was optimized to reduce the mean square error and found to be 0. Values of lambda from 0 to 2 (at intervals of 0.001) were tested on a random quarter of the data, using the remaining 75% to train the data. The number of trees was set at 5000 and the interaction depth to 4 to start the performance of the model very high (note that these values were not optimized, but will be in the future). Forward selection could also have been used to select the features used in this model; however, all features and interactions described were used in this model. 
+
+
+## 7. INTERPRETATION AND EVALUATION
+
+After tuning the parameters and selecting the variables as described above, each of the models was tested to determine performance as measured by the root mean squared error (RMSE). The RMSE was calculated with leave-one-out cross-validation. More specifically, each model was trained on (n-1) observations and the RMSE was calculated for the remaining observation. This was repeated for every observation and the average of the RMSE is reported in Table 2 below.
+
+![**Table 2: Comparing Model Performance** The RMSE is similar for all models, but the random forest model (highlighted) performs best with a RMSE of 25.15](figures/LOOCV.png)
+
+The RMSE is quite high for all models considering the range of blood sugar spikes is 0 to 200 with a median of 54, making this at minimum a 12.5% error and more often upwards of a 50% error. However, given the weak predictors, these models perform quite well and will hopefully improve after more observations are recorded and more uncorrelated features are added to the models.
+ 
+Of the four models built, all perform quite similarly, but Random Forest and KNN (k=11)  perform slightly better. The reported predictions of all models were made by using the  same training and set sets. The training was random 75% sample of the data and the  test set was the remaining 25% of the data. These predictions are reported for all  models in prediction.txt. The most influencial variables in the random forest model can  be seen in Figure 5; however, the clinical relevance of these findings may be poor given  the high RMSE for the models.
+
