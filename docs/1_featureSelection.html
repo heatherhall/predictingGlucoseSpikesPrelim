@@ -9,11 +9,10 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Heather HAll" />
+<meta name="author" content="First Last" />
 
-<meta name="date" content="2015-08-05" />
 
-<title>Preprocessing diet and continuous glucose monitoring data</title>
+<title>Feature selection</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -302,9 +301,9 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Preprocessing diet and continuous glucose monitoring data</h1>
-<h4 class="author"><em>Heather HAll</em></h4>
-<h4 class="date"><em>2015-08-05</em></h4>
+<h1 class="title toc-ignore">Feature selection</h1>
+<h4 class="author"><em>First Last</em></h4>
+<h4 class="date"><em>YYYY-MM-DD</em></h4>
 
 </div>
 
@@ -318,70 +317,6 @@ shared across the workflowr files. -->
  package git2r is installed -->
 <p><strong>Code version:</strong> dad48cc</p>
 <!-- Add your analysis here -->
-<p></br></br></p>
-<div id="under-construction-come-back-soon" class="section level1">
-<h1><strong>under construction… come back soon</strong></h1>
-</div>
-<div id="load-libraries" class="section level1">
-<h1>Load libraries</h1>
-<!-- load libraries -->
-<pre class="r"><code>library(&quot;lubridate&quot;) # work with times
-library(&quot;leaps&quot;) # regsubset
-library(&quot;kknn&quot;) # k nearest neighbor
-library(&quot;gbm&quot;) # boosting
-library(&quot;randomForest&quot;) # random forest
-library(gridExtra); library(grid); library(gtable) # plot tables
-library(&quot;ggplot2&quot;) # ggplot
-
-# load personal library
-source(paste(personal.library.directory, &quot;project_library.R&quot;, sep = &quot;/&quot;))</code></pre>
-</div>
-<div id="read-in-files" class="section level1">
-<h1>Read in files</h1>
-<pre class="r"><code># read in myfitnesspal data and recorded meal timing
-food.logs = readMyFitnessPal(food.data.path, conversion.chart.path)
-food.times &lt;- read.delim(food.timing.file, stringsAsFactors = FALSE)
-
-# read in glucose data
-cgm.readings = readDexcomFile(glucose.file)</code></pre>
-</div>
-<div id="annotate-glucose-spikes" class="section level1">
-<h1>Annotate glucose spikes</h1>
-<pre class="r"><code>min.peak = 120
-min.peak.height = 30
-cgm.readings = markGlucosePeaks(cgm.readings, min.peak.height, min.peak)
-
-
-# count number of peaks
-table(cgm.readings[which(cgm.readings$peak %in% c(&quot;max&quot;,&quot;min&quot;)),]$peak)</code></pre>
-<pre><code>
-max min 
-261 261 </code></pre>
-</div>
-<div id="data-exclusion" class="section level1">
-<h1>Data exclusion</h1>
-<pre class="r"><code># keep only dates with recorded meal times
-dates.with.meal.times &lt;- unique(food.times$Date)
-cgm.readings &lt;- cgm.readings[which(cgm.readings$GlucoseDisplayDate %in% dates.with.meal.times),] 
-
-# count number of peaks
-table(cgm.readings[which(cgm.readings$peak %in% c(&quot;max&quot;,&quot;min&quot;)),]$peak)</code></pre>
-<pre><code>
-max min 
-201 200 </code></pre>
-<pre class="r"><code># remove travel from glucose data and food timing
-cgm.readings = removeTravelDates(cgm.readings, travel.file, TZ.path)
-food.times = food.times[food.times$Date %in% cgm.readings$GlucoseDisplayDate, ] 
-
-
-# print number of days removed from travel
-
-# examine number of peaks
-table(cgm.readings[which(cgm.readings$peak %in% c(&quot;max&quot;,&quot;min&quot;)),]$peak)</code></pre>
-<pre><code>
-max min 
-121 124 </code></pre>
-<p></br></br></p>
 <div id="session-information" class="section level2">
 <h2>Session information</h2>
 <!-- Insert the session information into the document -->
@@ -394,23 +329,13 @@ locale:
 [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 
 attached base packages:
- [1] grid      parallel  splines   stats     graphics  grDevices utils    
- [8] datasets  methods   base     
-
-other attached packages:
- [1] ggplot2_2.2.1       gtable_0.2.0        gridExtra_2.2.1    
- [4] randomForest_4.6-12 gbm_2.1.3           lattice_0.20-35    
- [7] survival_2.41-3     kknn_1.3.1          leaps_3.0          
-[10] lubridate_1.6.0    
+[1] stats     graphics  grDevices utils     datasets  methods   base     
 
 loaded via a namespace (and not attached):
- [1] igraph_1.0.1     Rcpp_0.12.10     knitr_1.17       magrittr_1.5    
- [5] munsell_0.4.3    colorspace_1.3-2 plyr_1.8.4       stringr_1.2.0   
- [9] tools_3.3.3      git2r_0.19.0     htmltools_0.3.5  lazyeval_0.2.0  
-[13] yaml_2.1.14      rprojroot_1.2    digest_0.6.12    tibble_1.3.0    
-[17] Matrix_1.2-8     evaluate_0.10.1  rmarkdown_1.6    stringi_1.1.5   
-[21] scales_0.4.1     backports_1.0.5 </code></pre>
-</div>
+ [1] backports_1.0.5 magrittr_1.5    rprojroot_1.2   tools_3.3.3    
+ [5] htmltools_0.3.5 yaml_2.1.14     Rcpp_0.12.10    stringi_1.1.5  
+ [9] rmarkdown_1.6   knitr_1.17      git2r_0.19.0    stringr_1.2.0  
+[13] digest_0.6.12   evaluate_0.10.1</code></pre>
 </div>
 
 <hr>
