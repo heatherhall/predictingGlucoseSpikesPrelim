@@ -13,7 +13,10 @@ The main purpose of this project was to identify dietary factors that contribute
 *For analysis, see links below:*
 
 * [data preprocessing](0_preprocessing.html)
-* Item 2
+* [feature selection](1_featureSelection.html)
+* [data transformation](2_dataTransformation.html)
+* [data mining](3_dataMining.html)
+* [evaluation and interpretation](4_evaluation.html)
 
 </br>
 
