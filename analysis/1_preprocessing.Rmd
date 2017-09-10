@@ -1,0 +1,194 @@
+---
+title: "Preprocessing diet and continuous glucose monitoring data"
+author: "Heather Hall"
+date: 2015-08-05
+output: html_document
+code_folding: hide
+---
+
+<!-- The file analysis/chunks.R contains chunks that define default settings
+shared across the workflowr files. -->
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("chunks.R")
+```
+
+<!-- Update knitr chunk options -->
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+<!-- Insert the date the file was last updated -->
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+<!-- Insert the code version (Git commit SHA1) if Git repository exists and R
+ package git2r is installed -->
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+<!-- Add your analysis here -->
+
+</br></br>
+
+
+
+```{r setFileNames, message = F, include = F}
+
+rm(list=ls())
+
+personal.library.directory = "../code"
+food.data.path =  "/Users/hhall/predictingGlucoseSpikesPrelim/foodLogs.csv"
+conversion.chart.path = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Food Logs/graphs/food_chart.txt"
+glucose.file = "/Users/hhall/Box\ Sync/Heathers Externally Shareable Files/Snyder/Glucose/001_data/glucose_data_R.txt"
+travel.file = "/Users/hhall/Box\ Sync/Heathers Externally Shareable Files/Snyder/Calendar/flight_times_July.txt"
+TZ.path = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Calendar/timezone_codes.txt"
+food.timing.file = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Calendar/food_timing.txt"
+
+
+```
+
+# Load libraries
+<!-- load libraries -->
+```{r loadLibraries, message = F, include=T}
+
+library(lubridate) # work with times
+library(leaps) # regsubset
+library(kknn) # k nearest neighbor
+library(gbm) # boosting
+library(randomForest) # random forest
+library(gridExtra); library(grid); library(gtable) # plot tables
+library(ggplot2) # ggplot
+library(scales) # easy plotting of dates
+
+# load personal library
+source(paste(personal.library.directory, "project_library.R", sep = "/"))
+
+```
+
+# Read in files
+```{r readFiles, message = F}
+
+# read in myfitnesspal data and recorded meal timing
+food.logs = readMyFitnessPal(food.data.path, conversion.chart.path)
+food.times <- read.delim(food.timing.file, stringsAsFactors = FALSE)
+
+# read in glucose data
+cgm.readings = readDexcomFile(glucose.file)
+
+```
+
+
+### CGM data
+```{r showCGM, collapse = T}
+
+head(cgm.readings)
+
+example.date = "3/30/15"
+example.CGM = cgm.readings[cgm.readings$GlucoseDisplayDate == example.date, ]
+example.CGM$GlucoseDisplayTime <- as.POSIXct(strptime(example.CGM$GlucoseDisplayTime, format="%H:%M"))
+
+ggplot(example.CGM) + 
+  aes(x = GlucoseDisplayTime, y = GlucoseValue, group = GlucoseDisplayDate) + 
+  geom_point() + geom_line() + 
+  scale_x_datetime(breaks = date_breaks("6 hour"), labels = date_format("%H:%M")) + 
+  labs(x = "time of day (HH:MM)", y = "interstitial glucose (mg/dL)")
+
+```
+
+
+### Food logs
+```{r showFoodLogs, collapse = T}
+
+current.table = food.logs[sample(1:nrow(food.logs), 10), ]
+head(current.table)
+
+```
+
+### Food timing and meal descriptions
+```{r showFoodTimes, collapse=T}
+
+head(food.times[sample(1:nrow(food.times), 10), ])
+
+```
+
+# Annotate glucose spikes
+```{r markGlucosePeaks}
+min.peak = 120
+min.peak.height = 30
+cgm.readings = markGlucosePeaks(cgm.readings, min.peak.height, min.peak)
+
+
+# count number of peaks
+peak.type = c("max")
+number.peaks = length(cgm.readings[which(cgm.readings$peak %in% peak.type),]$peak)
+print(paste(number.peaks, "total glucose spikes annotated"))
+
+```
+
+
+```{r showMarkedGlucoseSpikes, collapse = T}
+
+head(cgm.readings)
+
+# get same example date
+example.CGM = cgm.readings[cgm.readings$GlucoseDisplayDate == example.date, ]
+example.CGM$GlucoseDisplayTime <- as.POSIXct(strptime(example.CGM$GlucoseDisplayTime, format="%H:%M"))
+
+spike.colors = c("0" = "black", "max" = "blue", "min" = "green")
+ggplot(example.CGM) + 
+  aes(x = GlucoseDisplayTime, y = GlucoseValue, group = GlucoseDisplayDate) + 
+  geom_point(aes(color = peak)) + geom_line() + 
+  scale_x_datetime(breaks = date_breaks("6 hour"), labels = date_format("%H:%M")) + 
+  scale_colour_manual(values = spike.colors) + 
+  labs(x = "time of day (HH:MM)", y = "interstitial glucose (mg/dL)")
+
+peakLabeller  <- as_labeller(c(
+    "0" = "all data",
+    "max" = "spikes (max)",
+    "min" = "nadirs (min)"
+  ))
+
+ggplot(cgm.readings) + 
+  aes(x = GlucoseValue, group = peak, fill = peak) + 
+  geom_density(alpha = 0.3) + 
+  ggtitle("Distribution of interstitial glucose concentrations") + 
+  facet_wrap(~peak, labeller=peakLabeller) + 
+  theme(legend.position="none")
+
+
+```
+
+
+# Data exclusion
+```{r dataExclusion}
+
+# keep only dates with recorded meal times
+dates.with.meal.times <- unique(food.times$Date)
+cgm.readings <- cgm.readings[which(cgm.readings$GlucoseDisplayDate %in% dates.with.meal.times),] 
+
+# count number of peaks
+peaks.remaining = length(cgm.readings[which(cgm.readings$peak %in% peak.type),]$peak)
+print(paste(number.peaks - peaks.remaining, "peaks excluded because lacked any meal data"))
+
+
+# remove travel from glucose data and food timing
+cgm.readings = removeTravelDates(cgm.readings, travel.file, TZ.path)
+food.times = food.times[food.times$Date %in% cgm.readings$GlucoseDisplayDate, ] 
+
+
+# print number of days removed from travel
+peaks.post.travel = length(cgm.readings[which(cgm.readings$peak %in% peak.type),]$peak)
+print(paste(peaks.remaining - peaks.post.travel, "peaks excluded because occured during travel"))
+
+
+```
+
+
+
+
+</br></br> 
+
+## Session information
+
+<!-- Insert the session information into the document -->
+```{r session-info}
+```

@@ -16,7 +16,6 @@ The main purpose of this project was to identify dietary factors that contribute
 * [feature selection](1_featureSelection.html)
 * [data transformation](2_dataTransformation.html)
 * [data mining](3_dataMining.html)
-* [evaluation and interpretation](4_evaluation.html)
 
 </br>
 

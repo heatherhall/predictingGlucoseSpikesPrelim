@@ -25,6 +25,389 @@ knitr::read_chunk("chunks.R")
 ```
 
 <!-- Add your analysis here -->
+<!-- Add your analysis here -->
+```{r preprocessingCode, message = F, include = F}
+
+
+########################################################
+#   Libraries
+########################################################
+rm(list = ls())
+
+
+library("lubridate")
+
+# # library for classification
+library("leaps") # regsubset
+library("kknn")
+library("gbm")
+library("randomForest")
+
+# visualization
+library(gridExtra); library(grid); library(gtable)
+library("ggplot2")
+
+personal.library.directory = "/Users/hhall/predictingGlucoseSpikesPrelim/code"
+source(paste(personal.library.directory, "project_library.R", sep = "/"))
+
+########################################################
+### Read in Files
+########################################################
+
+
+# file paths
+# ------------
+food.data.path =  "/Users/hhall/predictingGlucoseSpikesPrelim/foodLogs.csv"
+conversion.chart.path = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Food Logs/graphs/food_chart.txt"
+glucose.file = "/Users/hhall/Box\ Sync/Heathers Externally Shareable Files/Snyder/Glucose/001_data/glucose_data_R.txt"
+travel.file = "/Users/hhall/Box\ Sync/Heathers Externally Shareable Files/Snyder/Calendar/flight_times_July.txt"
+TZ.path = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Calendar/timezone_codes.txt"
+food.timing.file = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Calendar/food_timing.txt"
+
+
+
+# read in myfitnesspal data and recorded meal timing
+food.logs = readMyFitnessPal(food.data.path, conversion.chart.path)
+food.times <- read.delim(food.timing.file, stringsAsFactors = FALSE)
+
+# read in glucose data
+cgm.readings = readDexcomFile(glucose.file)
+
+
+########################################################
+### Data nnotation: Mark min and max peaks for all data
+########################################################
+
+min.peak = 120
+min.peak.height = 30
+cgm.readings = markGlucosePeaks(cgm.readings, min.peak.height, min.peak)
+
+
+########################################################
+### Data exclusion: only keep dates with recorded meal times
+########################################################
+
+
+# keep only dates with recorded meal times
+dates.with.meal.times <- unique(food.times$Date)
+cgm.readings <- cgm.readings[which(cgm.readings$GlucoseDisplayDate %in% dates.with.meal.times),] ### Have 14373 glucose readings with timestamped foods
+glucose_dates = cgm.readings
+
+
+########################################################
+### Data exclusion -- remove travel dates because sensor time is unreliable switching time zones
+########################################################
+
+
+# remove travel from glucose data
+cgm.readings = removeTravelDates(cgm.readings, travel.file, TZ.path)
+
+# remove travel from food.times
+food.times = food.times[food.times$Date %in% cgm.readings$GlucoseDisplayDate, ] 
+
+# combine features from food log with food timing
+food.times = addDietaryFeatures(food.times, food.logs)
+
+# associate glucose spikes with food features
+cgm.meal.features <- associateFoodAndCGM(cgm.readings, food.times)
+
+cgm.meal.features = removePeaksWithoutMeals(cgm.meal.features)
+
+## remove variables that wont be used for prediction
+features = c("timeChange","carbohydrates","glycemicIndex", 
+                       "AM","fruit","grain","inulin","banana",     
+                        "wine","last_meal_TIME" ,"diversity")
+predictors <- cgm.meal.features[,names(cgm.meal.features) %in% features]
+
+# define a data frame with predictors and response
+outcome.predictors = cbind(cgm.meal.features$glucoseChange, predictors)
+
+```
+
+
+```{r determineCorrelations}
+
+all.correlations = data.frame(matrix(ncol = 4, nrow = 1))
+names(all.correlations) = c("term one", "term two", "correlation coefficient", "Bonferonni P-value")
+
+# determine correlations 
+for(i in 1:ncol(predictors)){
+  for (j in 2:ncol(predictors)){
+    test <- cor.test(predictors[,i],predictors[,j])
+    p.value <- p.adjust(test$p.value, method="bonferroni", n = length(predictors)-1)
+    if (p.value < 0.05 & i != j){
+      new.row = data.frame(matrix(c(names(predictors)[i], names(predictors)[j], round(test$estimate, 2), signif(p.value, digits = 3)),
+                       nrow = 1))
+      names(new.row) = c("term one", "term two", "correlation coefficient", "Bonferonni P-value")
+      all.correlations = rbind(all.correlations, new.row)
+    }
+  }
+}
+
+# print "strong" correlations
+all.correlations = all.correlations[-1,]
+print(all.correlations[abs(as.numeric(all.correlations$`correlation coefficient`)) > 0.5,])
+
+
+```
+
+
+```{r formatFeatureMatrix}
+# scale the predictors and convert back to dataframe
+response_predictors <- data.frame(scale(predictors))
+
+# add the response column
+response_predictors$glucoseChange <- cgm.meal.features$glucoseChange
+```
+
+```{r defineTrainingTest}
+# define the training set to a random selection of 75% of the data
+set.seed(1)
+train = sample(1:nrow(response_predictors), nrow(response_predictors)*0.75)
+test = (-train)
+test.set = as.data.frame(response_predictors[test,])
+train.set = as.data.frame(response_predictors[train,])
+
+```
+
+
+```{r linearRegression}
+
+# Best subset selection given correlations above
+######################
+# 2 linear redundancies found so can only have ncol(response_predictors)- 2 maximum predictors
+regfit.interaction <- regsubsets(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+                                 response_predictors, nvmax = ncol(response_predictors)-2)
+reget.summary <- summary(regfit.interaction)
+
+par(mfrow = c(1,1))
+plot(reget.summary$cp, xlab = "Number of Variables", ylab = "Cp", main = "Best Subset Selection")
+points(which.min(reget.summary$cp), reget.summary$cp[which.min(reget.summary$cp)], 
+       col = "red", cex = 2,pch = 20)
+
+# determine which features to use
+names(coef(regfit.interaction,which.min(reget.summary$cp)))[-1]
+
+# train model
+######################
+lm = lm(glucoseChange~AM+fruit+last_meal_TIME+diversity+inulin:diversity, data = response_predictors, subset = train)
+summary_lm <- summary(lm)
+print(summary_lm)
+
+
+# Use LOOCV
+######################
+
+set.seed(1)
+avg.AdjR2.lm = 0
+avg.RMSE.lm = 0
+
+for (i in 1:nrow(response_predictors)){
+  test = i
+  train = -i
+  lm = lm(glucoseChange~AM+fruit+last_meal_TIME+diversity+inulin:diversity, data = response_predictors , subset = train)
+  summary_lm <- summary(lm)
+  
+  # now only grain is significant
+  
+  pred.lm <- predict(lm,response_predictors[test,])
+  MSE.lm <- mean((pred.lm - response_predictors[test,]$glucoseChange)^2)
+  RMSE <- sqrt(MSE.lm)
+  
+  avg.RMSE.lm = avg.RMSE.lm + RMSE
+  avg.AdjR2.lm = avg.AdjR2.lm + summary_lm$adj.r.squared  
+  
+}
+
+LM.RMSE = round(avg.RMSE.lm/nrow(response_predictors),2)
+print(paste("LOOCV RMSE LM:",LM.RMSE) )
+
+
+```
+
+```{r kNearestNeighbor}
+
+## LOOCV cross validation
+set.seed(0)
+CV.kknn.interactions <- train.kknn(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin, response_predictors, distance = 2, kmax = 21, kernel = "optimal")
+
+# plot MSE to use elbow method
+par(mfrow = c(1,1))
+plot(CV.kknn.interactions, main = "Optimizing for K") #, xlab = "Numnber of Clusters",ylab = "RSE")
+number.clusters = 5
+points(number.clusters, CV.kknn.interactions$MEAN.SQU[number.clusters], col = "red", pch = 20)
+
+
+# print RMSE for LOOCV
+knn.RMSE = round(sqrt(CV.kknn.interactions$MEAN.SQU[number.clusters]), 2)
+print(paste("LOOCV KNN RMSE:", knn.RMSE))
+
+
+```
+
+
+```{r randomForest}
+## calculate the average RSE for Leave out out 
+set.seed(1)
+avg.RMSE.RF = 0
+avg.importance = rep(0,ncol(response_predictors)-1)
+
+for(i in 1:nrow(response_predictors)){
+  train = -i
+  test = i
+  test.set = 
+    
+    RF.glucoseChange = randomForest(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+                                    data = response_predictors, subset = train, mtry = sqrt(ncol(response_predictors)-1), importance = TRUE)
+  
+  # calculate MSE
+  pred.RF = predict(RF.glucoseChange ,newdata=response_predictors[test,])
+  MSE.RF <- mean((pred.RF-response_predictors[test,]$glucoseChange)^2)
+  RMSE = sqrt(MSE.RF)
+  
+  avg.RMSE.RF = avg.RMSE.RF + RMSE
+  avg.importance = avg.importance + importance(RF.glucoseChange)[,1]
+  
+}
+
+RF.RMSE = round(avg.RMSE.RF/nrow(response_predictors),2)
+print(paste("Avg RMSE Random Forest:",RF.RMSE ))
+print(c("Mean Decrease in Accuracy when Left out of Bag\n",avg.importance/nrow(response_predictors)))
+
+varImpPlot(RF.glucoseChange,main = "Variable Importance for Random Forest")
+
+
+
+```
+
+```{r boosting}
+
+
+
+## test to find the best tuning parameter
+# -----------------------------------
+set.seed(1)
+train = sample(1:nrow(response_predictors), nrow(response_predictors)*0.75)
+test = (-train)
+
+minLambda = 7
+minRMSE = 100
+
+for (lambda in seq(0.000,0.005,0.001)){
+  boost.glucoseChange <- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+                             data = response_predictors[train,], distribution = "gaussian",
+                             n.trees = 5000, interaction.depth = 4,
+                             verbose = F,shrinkage = lambda)
+  pred.boost <- predict(boost.glucoseChange, newdata = response_predictors[test,], n.trees = 5000)
+  RMSE.boost <- sqrt(mean((pred.boost-response_predictors[test,]$glucoseChange)^2))
+  
+  
+  if (RMSE.boost < minRMSE){
+    print(c("lambda",lambda,"MSE",RMSE.boost,minRMSE))
+    minLambda = lambda
+    minRMSE = RMSE.boost
+  }
+  
+}
+
+minLambda  # 0.001
+
+
+## test to find the best number of trees
+# -----------------------------------
+
+numTrees = seq(0,160000,5000)
+tree_RMSE = rep(0, length(numTrees))
+# minLambda 
+
+i = 1
+for (trees in numTrees){
+  ## Find the model using all predictors to make plots
+  boost.glucoseChange <- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+                             data = response_predictors, distribution = "gaussian",
+                             n.trees = trees, interaction.depth = 4,
+                             verbose = F, shrinkage = minLambda)
+  
+  pred.boost <- predict(boost.glucoseChange, newdata = response_predictors[test,], n.trees = trees)
+  tree_RMSE[i] <- sqrt(mean((pred.boost-response_predictors[test,]$glucoseChange)^2))
+  i = i + 1 
+}
+
+
+par(mfrow = c(1,1))
+
+# effect of number of trees
+plot(numTrees,tree_RMSE, main = "Effect of Boosting with more Trees", ylab = "RMSE", xlab = "Number of Trees", pch = 16)
+# plot(numTrees.RF,tree_RMSE.RF, main = "Effect of Random Forest with more Trees", ylab = "RMSE", xlab = "Number of Trees", pch = 16)
+lines(numTrees,tree_RMSE)
+
+
+# plot relative importance of factors
+boost.summary = summary(boost.glucoseChange, yaxt="n")
+ggplot(boost.summary) + 
+  aes(x = factor(var, levels = rev(boost.summary$var)), 
+      y = rel.inf) + 
+  geom_bar(stat="identity", fill = "blue") + 
+  labs(x = "model feature", y = "relative importance") + 
+  coord_flip()
+
+par(mfrow = c(2,2))
+plot(boost.glucoseChange, i = "timeChange")
+plot(boost.glucoseChange, i = "last_meal_TIME")
+plot(boost.glucoseChange, i = "carbohydrates")
+plot(boost.glucoseChange, i = "glycemicIndex")
+
+
+# Find the RMSE for the model with optimized lambda using LOOCV
+# -----------------------------------
+avg.RMSE.boost = 0
+
+for (i in 1:nrow(response_predictors)){
+  test = i
+  train = -i
+  
+  ## Find the model using all predictors to make plots
+  boost.glucoseChange <- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+                             data = response_predictors[train,], distribution = "gaussian",
+                             n.trees = 5000, interaction.depth = 4,
+                             verbose = F,shrinkage = minLambda)
+  
+  
+  pred.boost <- predict(boost.glucoseChange, newdata = response_predictors[test,], n.trees = 5000)
+  MSE.boost <- mean((pred.boost-response_predictors[test,]$glucoseChange)^2)
+  RMSE.boost = sqrt(MSE.boost)
+  
+  avg.RMSE.boost = avg.RMSE.boost + RMSE.boost
+}
+
+summary(boost.glucoseChange)
+boosting.RMSE = round(avg.RMSE.boost/nrow(response_predictors),2)
+print(paste("Average RMSE for Boosting: ",boosting.RMSE))
+
+
+
+```
+
+```{r rmseResults}
+
+RMSE.results = data.frame(model = c("linear regression", "k-nearest neighbor (k = 5)",
+                                           "random forest", "boosting random forest"),
+                        RMSE = c(LM.RMSE, knn.RMSE, RF.RMSE, boosting.RMSE))
+RMSE.results$`percent error` = round(RMSE.results$RMSE/mean(response_predictors$glucoseChange)*100,2)
+
+
+# plot the RMSE for comparison
+grid.newpage()
+table.plot = tableGrob(RMSE.results, rows = NULL)
+table.plot <- gtable_add_grob(table.plot,
+                     grobs = rectGrob(gp = gpar(fill = NA, lwd = 2)),
+                     t = 2, b = nrow(table.plot), l = 1, r = ncol(table.plot))
+table.plot <- gtable_add_grob(table.plot,
+                     grobs = rectGrob(gp = gpar(fill = NA, lwd = 2)),
+                     t = 1, l = 1, r = ncol(table.plot))
+grid.draw(table.plot)
+
+```
 
 ## Session information
 
