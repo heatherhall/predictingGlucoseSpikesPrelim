@@ -124,14 +124,19 @@ head(current.table)
 ### Data exclusion
 ```{r removeMissingData}
 
-# look at only glucose spikes
-cgm.meal.features = cgm.meal.features[cgm.meal.features$peak == "max", ]
-
 # remove peaks without meals
 cgm.meal.features = removePeaksWithoutMeals(cgm.meal.features)
 
+# convert min-peaks and null-peaks to non-peaks
+# look at only glucose spikes
+cgm.meal.features[cgm.meal.features$peak != "max", ]$peak <- 0
+
+print("FIX ME!")
+
 # print final number of observations
-print(paste(nrow(cgm.meal.features), "total glucose spikes"))
+peaks = length(cgm.meal.features$peak[cgm.meal.features$peak == "max"])
+non.peaks = length(cgm.meal.features$peak[cgm.meal.features$peak != "max"])
+print(paste(c(peaks, " total glucose spikes, ", non.peaks, " total non-spikes"), collapse = ""))
 ```
 
 ### distribution of glucose concentrations

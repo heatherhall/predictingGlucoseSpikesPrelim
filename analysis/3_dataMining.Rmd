@@ -108,6 +108,7 @@ cgm.meal.features <- associateFoodAndCGM(cgm.readings, food.times)
 # remove peaks without meals
 cgm.meal.features = removePeaksWithoutMeals(cgm.meal.features)
 
+
 ## remove variables that wont be used for prediction
 features = c("timeChange","carbohydrates","glycemicIndex", 
                        "AM","fruit","grain","inulin","banana",     
@@ -118,8 +119,8 @@ predictors <- cgm.meal.features[,names(cgm.meal.features) %in% features]
 outcome.predictors = cbind(cgm.meal.features$glucoseChange, predictors)
 
 ```
-
-
+</br>
+# Correlations between predictors
 ```{r determineCorrelations}
 
 all.correlations = data.frame(matrix(ncol = 4, nrow = 1))
@@ -139,14 +140,29 @@ for(i in 1:ncol(predictors)){
   }
 }
 
-# print "strong" correlations
+```
+
+### correlation table
+```{r correlation table, collapse = T}
 all.correlations = all.correlations[-1,]
-print(all.correlations[abs(as.numeric(all.correlations$`correlation coefficient`)) > 0.5,])
+strong.correlations = all.correlations[abs(as.numeric(all.correlations$`correlation coefficient`)) > 0.5,]
+cor.results = data.frame(strong.correlations)
 
-
+# plot the RMSE for comparison
+grid.newpage()
+table.plot = tableGrob(cor.results, rows = NULL)
+table.plot <- gtable_add_grob(table.plot,
+                     grobs = rectGrob(gp = gpar(fill = NA, lwd = 2)),
+                     t = 2, b = nrow(table.plot), l = 1, r = ncol(table.plot))
+table.plot <- gtable_add_grob(table.plot,
+                     grobs = rectGrob(gp = gpar(fill = NA, lwd = 2)),
+                     t = 1, l = 1, r = ncol(table.plot))
+grid.draw(table.plot)
 ```
 
 
+
+# Format feature matrix
 ```{r formatFeatureMatrix}
 # scale the predictors and convert back to dataframe
 response_predictors <- data.frame(scale(predictors))
@@ -155,6 +171,7 @@ response_predictors <- data.frame(scale(predictors))
 response_predictors$glucoseChange <- cgm.meal.features$glucoseChange
 ```
 
+# Define training and test sets
 ```{r defineTrainingTest}
 # define the training set to a random selection of 75% of the data
 set.seed(1)
@@ -163,36 +180,52 @@ test = (-train)
 test.set = as.data.frame(response_predictors[test,])
 train.set = as.data.frame(response_predictors[train,])
 
+
+print(paste(c(nrow(test.set), " test samples, ", nrow(train.set), " training samples"), collapse = ""))
 ```
 
+</br>
 
-```{r linearRegression}
+# Linear Regression
 
-# Best subset selection given correlations above
-######################
+
+
+### Best subset selection
+```{r bestsubset, collapse = T, message = F}
 # 2 linear redundancies found so can only have ncol(response_predictors)- 2 maximum predictors
 regfit.interaction <- regsubsets(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
                                  response_predictors, nvmax = ncol(response_predictors)-2)
 reget.summary <- summary(regfit.interaction)
 
-par(mfrow = c(1,1))
+
+# Determine best set of variables
+par(mfrow = c(1,3))
+plot(reget.summary$adjr2, xlab = "Number of Variables", ylab = "Adjusted R^2", main = "Best Subset Selection")
+points(which.max(reget.summary$adjr2), reget.summary$adjr2[which.max(reget.summary$adjr2)], 
+       col = "red", cex = 2,pch = 20)
 plot(reget.summary$cp, xlab = "Number of Variables", ylab = "Cp", main = "Best Subset Selection")
 points(which.min(reget.summary$cp), reget.summary$cp[which.min(reget.summary$cp)], 
        col = "red", cex = 2,pch = 20)
+plot(reget.summary$bic, xlab = "Number of Variables", ylab = "BIC", main = "Best Subset Selection")
+points(which.min(reget.summary$bic), reget.summary$bic[which.min(reget.summary$bic)], 
+       col = "red", cex = 2,pch = 20)
 
 # determine which features to use
-names(coef(regfit.interaction,which.min(reget.summary$cp)))[-1]
+print(names(coef(regfit.interaction,which.min(reget.summary$cp)))[-1])
 
-# train model
-######################
+```
+
+### Linear regression model
+```{r linearRegression, message = F}
+
 lm = lm(glucoseChange~AM+fruit+last_meal_TIME+diversity+inulin:diversity, data = response_predictors, subset = train)
 summary_lm <- summary(lm)
 print(summary_lm)
 
+```
 
-# Use LOOCV
-######################
-
+### LOOCV to determine RMSE
+```{r lmLOOCV, message = F, collapse = T}
 set.seed(1)
 avg.AdjR2.lm = 0
 avg.RMSE.lm = 0
@@ -202,9 +235,7 @@ for (i in 1:nrow(response_predictors)){
   train = -i
   lm = lm(glucoseChange~AM+fruit+last_meal_TIME+diversity+inulin:diversity, data = response_predictors , subset = train)
   summary_lm <- summary(lm)
-  
-  # now only grain is significant
-  
+
   pred.lm <- predict(lm,response_predictors[test,])
   MSE.lm <- mean((pred.lm - response_predictors[test,]$glucoseChange)^2)
   RMSE <- sqrt(MSE.lm)
@@ -217,16 +248,18 @@ for (i in 1:nrow(response_predictors)){
 LM.RMSE = round(avg.RMSE.lm/nrow(response_predictors),2)
 print(paste("LOOCV RMSE LM:",LM.RMSE) )
 
-
 ```
 
+</br>
+
+# K-nearest Neighbor
 ```{r kNearestNeighbor}
 
 ## LOOCV cross validation
 set.seed(0)
 CV.kknn.interactions <- train.kknn(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin, response_predictors, distance = 2, kmax = 21, kernel = "optimal")
 
-# plot MSE to use elbow method
+# plot MSE and elbow method to determine K
 par(mfrow = c(1,1))
 plot(CV.kknn.interactions, main = "Optimizing for K") #, xlab = "Numnber of Clusters",ylab = "RSE")
 number.clusters = 5
@@ -239,8 +272,9 @@ print(paste("LOOCV KNN RMSE:", knn.RMSE))
 
 
 ```
+</br>
 
-
+# Random Forest
 ```{r randomForest, eval = F}
 ## calculate the average RSE for Leave out out 
 set.seed(1)
@@ -267,20 +301,33 @@ for(i in 1:nrow(response_predictors)){
 
 RF.RMSE = round(avg.RMSE.RF/nrow(response_predictors),2)
 print(paste("Avg RMSE Random Forest:",RF.RMSE ))
-print(c("Mean Decrease in Accuracy when Left out of Bag\n",avg.importance/nrow(response_predictors)))
+```
 
+### variable importance RF
+```{r varImportanceRF, collapse=T, eval = F}
+# set up dataset
+variable.decrease = data.frame(variable = names(avg.importance), mean.decrease = avg.importance/nrow(response_predictors))
+variable.order = variable.decrease[order(variable.decrease$mean.decrease), ]$variable
+
+# plot decrease in accuracy
+ggplot(variable.decrease) + 
+  aes(y = mean.decrease, x = factor(variable, levels = variable.order)) + 
+  geom_bar(stat = "identity", fill = "blue") + 
+  coord_flip() + 
+  labs(x = "variable name", y = "mean decrease in accuracy when left out of bag")
+
+# plot variable importance plots
 varImpPlot(RF.glucoseChange,main = "Variable Importance for Random Forest")
-
-
 
 ```
 
-```{r boosting, eval = F}
 
+</br>
 
+# Boosting
 
-## test to find the best tuning parameter
-# -----------------------------------
+### optimize tuning parameter
+```{r boostingTuning, collapse = T, eval = F}
 set.seed(1)
 train = sample(1:nrow(response_predictors), nrow(response_predictors)*0.75)
 test = (-train)
@@ -298,22 +345,20 @@ for (lambda in seq(0.000,0.005,0.001)){
   
   
   if (RMSE.boost < minRMSE){
-    print(c("lambda",lambda,"MSE",RMSE.boost,minRMSE))
+    # print(c("lambda",lambda,"MSE",RMSE.boost,minRMSE))
     minLambda = lambda
     minRMSE = RMSE.boost
   }
   
 }
 
-minLambda  # 0.001
+print(paste("best tuning parameter:", minLambda))
+```
 
-
-## test to find the best number of trees
-# -----------------------------------
-
-numTrees = seq(0,160000,5000)
+### optimize number of trees
+```{r treesBoosting, collapse = T, eval = F}
+numTrees = seq(0,20000,5000)
 tree_RMSE = rep(0, length(numTrees))
-# minLambda 
 
 i = 1
 for (trees in numTrees){
@@ -328,17 +373,17 @@ for (trees in numTrees){
   i = i + 1 
 }
 
-
-par(mfrow = c(1,1))
-
 # effect of number of trees
+par(mfrow = c(1,1))
 plot(numTrees,tree_RMSE, main = "Effect of Boosting with more Trees", ylab = "RMSE", xlab = "Number of Trees", pch = 16)
-# plot(numTrees.RF,tree_RMSE.RF, main = "Effect of Random Forest with more Trees", ylab = "RMSE", xlab = "Number of Trees", pch = 16)
-lines(numTrees,tree_RMSE)
+# lines(numTrees,tree_RMSE)
+```
 
+### plot relative importance
+```{r boostingFactorsImportance, collapse = T, eval = F}
 
-# plot relative importance of factors
-boost.summary = summary(boost.glucoseChange, yaxt="n")
+# relative importance of factors
+boost.summary = summary(boost.glucoseChange, plotit = F)
 ggplot(boost.summary) + 
   aes(x = factor(var, levels = rev(boost.summary$var)), 
       y = rel.inf) + 
@@ -346,15 +391,22 @@ ggplot(boost.summary) +
   labs(x = "model feature", y = "relative importance") + 
   coord_flip()
 
+```
+### plot marginal effects
+```{r boostMarginalEffects, collapse=T, eval = F}
 par(mfrow = c(2,2))
 plot(boost.glucoseChange, i = "timeChange")
 plot(boost.glucoseChange, i = "last_meal_TIME")
 plot(boost.glucoseChange, i = "carbohydrates")
 plot(boost.glucoseChange, i = "glycemicIndex")
 
+```
 
-# Find the RMSE for the model with optimized lambda using LOOCV
-# -----------------------------------
+
+
+# LOOCV to determine RMSE
+```{r boostingRMSE, eval = F, tidy = T}
+
 avg.RMSE.boost = 0
 
 for (i in 1:nrow(response_predictors)){
@@ -375,20 +427,18 @@ for (i in 1:nrow(response_predictors)){
   avg.RMSE.boost = avg.RMSE.boost + RMSE.boost
 }
 
-summary(boost.glucoseChange)
 boosting.RMSE = round(avg.RMSE.boost/nrow(response_predictors),2)
 print(paste("Average RMSE for Boosting: ",boosting.RMSE))
 
-
-
 ```
 
+# LOOCV RMSE Results
 ```{r rmseResults, eval = F}
 
 RMSE.results = data.frame(model = c("linear regression", "k-nearest neighbor (k = 5)",
                                            "random forest", "boosting random forest"),
                         RMSE = c(LM.RMSE, knn.RMSE, RF.RMSE, boosting.RMSE))
-RMSE.results$`percent error` = round(RMSE.results$RMSE/mean(response_predictors$glucoseChange)*100,2)
+RMSE.results$`percent error` = round(RMSE.results$RMSE/mean(response_predictors$glucoseChange)*100,1)
 
 
 # plot the RMSE for comparison
