@@ -2,7 +2,7 @@
 
 [project website]: https://heatherhall.github.io/predictingGlucoseSpikesPrelim/
 
-The main purpose of this project was to identify dietary factors that contribute to spikes in blood sugar levels for a pre-diabetic individual. Four models were used to predict height of blood sugar spikes: linear regression, weighted k-nearest neighbor, random forest, and boosted regression. Each model was tuned to optimize the root mean squared error. A description of the analysis methods is given in the [About](docs/About.html) page.
+The main purpose of this project was to identify dietary factors that contribute to spikes in blood sugar levels for a pre-diabetic individual. Four models were used to predict height of blood sugar spikes: linear regression, weighted k-nearest neighbor, random forest, and boosted regression. Each model was tuned to optimize the root mean squared error. A description of the analysis methods is given in the [About](https://heatherhall.github.io/predictingGlucoseSpikesPrelim/about.html) page.
 
 
 
@@ -12,10 +12,10 @@ The main purpose of this project was to identify dietary factors that contribute
 
 *For analysis, see links below:*
 
-* [project library](docs/0_projectLibrary.html)
-* [data preprocessing](docs/1_preprocessing.html)
-* [feature selection](docs/2_featureSelection.html)
-* [data mining](docs/3_dataMining.html)
+* [project library](https://heatherhall.github.io/predictingGlucoseSpikesPrelim//0_projectLibrary.html)
+* [data preprocessing](https://heatherhall.github.io/predictingGlucoseSpikesPrelim/1_preprocessing.html)
+* [feature selection](https://heatherhall.github.io/predictingGlucoseSpikesPrelim//2_featureSelection.html)
+* [data mining](https://heatherhall.github.io/predictingGlucoseSpikesPrelim//3_dataMining.html)
 
 
 # Results
