@@ -6,7 +6,7 @@ The main purpose of this project was to identify dietary factors that contribute
 
 
 
-![**Figure 1: Representative Day in Data Set** Blood sugar levels are shown varying over a single day with red and blue dots representing spikes and minimums, respectively. The approximate time windows for which dietary information is collected for each blood sugar spike are shown alternating in yellow and purple. As shown, the food entered into the dietary log (shown here with black lines) tends to fall in the windows prior to each blood sugar spike. Note that some spikes have no dietary information, which may be the result of missing diet log information and so these windows were discarded from the models.](docs/figures/cgmExample.png){:height="50%" width="50%"}
+![**Figure 1: Representative Day in Data Set** Blood sugar levels are shown varying over a single day with red and blue dots representing spikes and minimums, respectively. The approximate time windows for which dietary information is collected for each blood sugar spike are shown alternating in yellow and purple. As shown, the food entered into the dietary log (shown here with black lines) tends to fall in the windows prior to each blood sugar spike. Note that some spikes have no dietary information, which may be the result of missing diet log information and so these windows were discarded from the models.](docs/figures/cgmExample.png)
 
 # Methods
 
