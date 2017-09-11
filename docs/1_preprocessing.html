@@ -13,7 +13,7 @@
 
 <meta name="date" content="2015-08-05" />
 
-<title>Preprocessing diet and continuous glucose monitoring data</title>
+<title>Preprocessing dietary and CGM data</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -302,7 +302,7 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Preprocessing diet and continuous glucose monitoring data</h1>
+<h1 class="title toc-ignore">Preprocessing dietary and CGM data</h1>
 <h4 class="author"><em>Heather Hall</em></h4>
 <h4 class="date"><em>2015-08-05</em></h4>
 
@@ -313,10 +313,10 @@ div.tocify {
 shared across the workflowr files. -->
 <!-- Update knitr chunk options -->
 <!-- Insert the date the file was last updated -->
-<p><strong>Last updated:</strong> 2017-09-10</p>
+<p><strong>Last updated:</strong> 2017-09-11</p>
 <!-- Insert the code version (Git commit SHA1) if Git repository exists and R
  package git2r is installed -->
-<p><strong>Code version:</strong> 9959465</p>
+<p><strong>Code version:</strong> c976020</p>
 <!-- Add your analysis here -->
 <p></br></br></p>
 <div id="load-libraries" class="section level1">
@@ -342,10 +342,9 @@ food.times &lt;- read.delim(food.timing.file, stringsAsFactors = FALSE)
 
 # read in glucose data
 cgm.readings = readDexcomFile(glucose.file)</code></pre>
-<div id="cgm-data" class="section level3">
-<h3>CGM data</h3>
-<pre class="r"><code>
-head(cgm.readings)
+<div id="preview-of-cgm-data" class="section level3">
+<h3>preview of CGM data</h3>
+<pre class="r"><code>head(cgm.readings)
   GlucoseDisplayDate GlucoseDisplayTime GlucoseValue         DisplayTime
 1            3/29/15              11:53          100 2015-03-29 11:53:00
 2            3/29/15              11:58          111 2015-03-29 11:58:00
@@ -365,10 +364,9 @@ ggplot(example.CGM) +
   labs(x = &quot;time of day (HH:MM)&quot;, y = &quot;interstitial glucose (mg/dL)&quot;)</code></pre>
 <p><img src="figure/1_preprocessing.Rmd/showCGM-1.png" width="672" style="display: block; margin: auto;" /></p>
 </div>
-<div id="food-logs" class="section level3">
-<h3>Food logs</h3>
-<pre class="r"><code>
-current.table = food.logs[sample(1:nrow(food.logs), 10), ]
+<div id="preview-of-food-logs" class="section level3">
+<h3>preview of food logs</h3>
+<pre class="r"><code>current.table = food.logs[sample(1:nrow(food.logs), 10), ]
 head(current.table)
                       description   food_id entry_date  category
 1262          Whole Psyllium Husk 162715011    1/28/15      &lt;NA&gt;
@@ -406,10 +404,9 @@ head(current.table)
 239  0.0000000       meat      pig                         
 467  0.2370002      drink   coffee                         </code></pre>
 </div>
-<div id="food-timing-and-meal-descriptions" class="section level3">
-<h3>Food timing and meal descriptions</h3>
-<pre class="r"><code>
-head(food.times[sample(1:nrow(food.times), 10), ])
+<div id="preview-of-food-timing-and-meal-descriptions" class="section level3">
+<h3>preview of food timing and meal descriptions</h3>
+<pre class="r"><code>head(food.times[sample(1:nrow(food.times), 10), ])
        Date  TIME AM_PM            Food      Meal Minus.Meal  Notes
 31   4/3/15 17:20    pm            wine    dinner         NA       
 149 4/27/15 19:30    pm          dinner    dinner         NA unsure
@@ -438,8 +435,9 @@ peak.type = c(&quot;max&quot;)
 number.peaks = length(cgm.readings[which(cgm.readings$peak %in% peak.type),]$peak)
 print(paste(number.peaks, &quot;total glucose spikes annotated&quot;))</code></pre>
 <pre><code>[1] &quot;261 total glucose spikes annotated&quot;</code></pre>
-<pre class="r"><code>
-head(cgm.readings)
+<div id="preview-of-annotated-glucose-spikes" class="section level3">
+<h3>preview of annotated glucose spikes</h3>
+<pre class="r"><code>head(cgm.readings)
   GlucoseDisplayDate GlucoseDisplayTime GlucoseValue         DisplayTime
 1            3/29/15              11:53          100 2015-03-29 11:53:00
 2            3/29/15              11:58          111 2015-03-29 11:58:00
@@ -459,7 +457,8 @@ head(cgm.readings)
 example.CGM = cgm.readings[cgm.readings$GlucoseDisplayDate == example.date, ]
 example.CGM$GlucoseDisplayTime &lt;- as.POSIXct(strptime(example.CGM$GlucoseDisplayTime, format=&quot;%H:%M&quot;))
 
-spike.colors = c(&quot;0&quot; = &quot;black&quot;, &quot;max&quot; = &quot;blue&quot;, &quot;min&quot; = &quot;green&quot;)
+# show example of labeled cgm data
+spike.colors = c(&quot;0&quot; = &quot;black&quot;, &quot;max&quot; = &quot;red&quot;, &quot;min&quot; = &quot;purple&quot;)
 ggplot(example.CGM) + 
   aes(x = GlucoseDisplayTime, y = GlucoseValue, group = GlucoseDisplayDate) + 
   geom_point(aes(color = peak)) + geom_line() + 
@@ -467,8 +466,10 @@ ggplot(example.CGM) +
   scale_colour_manual(values = spike.colors) + 
   labs(x = &quot;time of day (HH:MM)&quot;, y = &quot;interstitial glucose (mg/dL)&quot;)</code></pre>
 <p><img src="figure/1_preprocessing.Rmd/showMarkedGlucoseSpikes-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>
-peakLabeller  &lt;- as_labeller(c(
+</div>
+<div id="distribution-of-glucose-concentration" class="section level3">
+<h3>distribution of glucose concentration</h3>
+<pre class="r"><code>peakLabeller  &lt;- as_labeller(c(
     &quot;0&quot; = &quot;all data&quot;,
     &quot;max&quot; = &quot;spikes (max)&quot;,
     &quot;min&quot; = &quot;nadirs (min)&quot;
@@ -480,7 +481,8 @@ ggplot(cgm.readings) +
   ggtitle(&quot;Distribution of interstitial glucose concentrations&quot;) + 
   facet_wrap(~peak, labeller=peakLabeller) + 
   theme(legend.position=&quot;none&quot;)</code></pre>
-<p><img src="figure/1_preprocessing.Rmd/showMarkedGlucoseSpikes-2.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/1_preprocessing.Rmd/glucoseDistribution-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
 </div>
 <div id="data-exclusion" class="section level1">
 <h1>Data exclusion</h1>

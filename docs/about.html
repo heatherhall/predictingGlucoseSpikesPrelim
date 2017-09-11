@@ -224,7 +224,7 @@ $(document).ready(function () {
 <div id="data-preprocessing" class="section level2">
 <h2><strong>2. DATA PREPROCESSING</strong></h2>
 <p>In order to properly relate the two datasets, the blood sugar measurements were compressed into minimum and maximum blood sugar levels, with maximum values hereby referred to as “spikes.” Windows were created starting from thirty minutes before a blood sugar level minimum until a spike, assuming that only events in this time window affected the spike. From this only windows that contained dietary log information were used to build models. This outcome variable was chosen because the height of the spike appeared to be both normally distributed and independent. See Figure 1 one the next for a pictorial representation. After processing, there were 94 glucose spikes with dietary information.</p>
-<p><em>Click on this <a href="0_preprocessing.html">link</a> to see my results.</em> <!-- Displays message on index page: Click on this link to see my results. --></p>
+<p><em>Click on this <a href="1_preprocessing.html">link</a> to see my analysis</em> <!-- Displays message on index page: Click on this link to see my results. --></p>
 <p></br></br></p>
 </div>
 <div id="feature-selection" class="section level2">
@@ -232,6 +232,7 @@ $(document).ready(function () {
 <p>The diet logs contain 19 primary attributes relating to nutritional content and food identity. Of these features, many had missing information (e.g. vitamin B is not recorded for all food) or were not thought to contribute to blood sugar levels (e.g. total fat) and so were not included. The remaining variables included calories, carbohydrates, sugar, fiber, food group, and food subtype. There were seven groups and one hundred subtypes recorded in the diet log, some of which were rarely recorded and others not thought to be be involved in blood sugar levels. Since limited observations are available, only the presence of most common groups/subtypes known to influence blood sugar were used as attributes: wine, banana, inulin (fiber), grain, and fruit.</p>
 <p>Many of the features selected from the log were correlated, such as sugar, fiber, and carbohydrates. In order to reduce correlated predictors, glycemic index was used to encompass all three variables (glycemic index = carbohydrates – fiber – sugar alcohols). Since there is some dispute over whether carbohydrate load or glycemic index is most predictive of blood sugar levels, both were were included in the models. Additionally, given the interplay of fiber and glucose in blood sugar levels, eating a diversity of food may play a role in blood sugar levels and diversity of the diet was included in the model (number of food groups per window)</p>
 <p>Timing of meals has been reported to affect blood sugar spikes and so several predictors were added to model this phenomenon. Time of day (coded as morning vs not) was included in the model since the subject recorded noticing correlation in blood sugar spikes and mornings. Finally, time since the last meal was included to represent consistency of meal times.</p>
+<p><em>Click on this <a href="2_featureSelection.html">link</a> to see my analysis</em></p>
 <p></br></br></p>
 </div>
 <div id="data-transformation" class="section level2">
@@ -245,6 +246,7 @@ $(document).ready(function () {
 <div id="data-mining" class="section level2">
 <h2><strong>5. DATA MINING</strong></h2>
 <p>Prior to building models, the predictors were checked for interactions through graphing and assessing the significance of each interaction using a bonferroni corrected Pearson correlation test (Table 1). All of the predictors showed some significant interaction with another predictor, however, many of these correlation values were week. Only significant interactions with correlation coefficients greater than 0.5 were used in the models.</p>
+<p><em>Click on this <a href="3_dataMining">link</a> to see my analysis</em></p>
 <center>
 <img src="figures/interactions.png" alt="Table 1: Interactions Between Predictors: All of the predictors used for this model had some form of significant interaction with another predictor. These interaction terms were used in the models and likely reduced the ability of each model to accurately predict the height of the glucose spike. Once more predictors are included in the model, such as blood pressure and activity, the predictive power of these models will likely increase." style="width:50.0%" />
 </center>

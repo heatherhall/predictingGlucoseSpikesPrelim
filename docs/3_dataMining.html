@@ -9,10 +9,11 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="First Last" />
+<meta name="author" content="Heather Hall" />
 
+<meta name="date" content="2015-08-05" />
 
-<title>Untitled</title>
+<title>Data mining</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -301,9 +302,9 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Untitled</h1>
-<h4 class="author"><em>First Last</em></h4>
-<h4 class="date"><em>YYYY-MM-DD</em></h4>
+<h1 class="title toc-ignore">Data mining</h1>
+<h4 class="author"><em>Heather Hall</em></h4>
+<h4 class="date"><em>2015-08-05</em></h4>
 
 </div>
 
@@ -312,10 +313,10 @@ div.tocify {
 shared across the workflowr files. -->
 <!-- Update knitr chunk options -->
 <!-- Insert the date the file was last updated -->
-<p><strong>Last updated:</strong> 2017-09-10</p>
+<p><strong>Last updated:</strong> 2017-09-11</p>
 <!-- Insert the code version (Git commit SHA1) if Git repository exists and R
  package git2r is installed -->
-<p><strong>Code version:</strong> 9959465</p>
+<p><strong>Code version:</strong> c976020</p>
 <!-- Add your analysis here -->
 <!-- Add your analysis here -->
 <pre class="r"><code>all.correlations = data.frame(matrix(ncol = 4, nrow = 1))
@@ -491,35 +492,10 @@ for(i in 1:nrow(response_predictors)){
 }
 
 RF.RMSE = round(avg.RMSE.RF/nrow(response_predictors),2)
-print(paste(&quot;Avg RMSE Random Forest:&quot;,RF.RMSE ))</code></pre>
-<pre><code>[1] &quot;Avg RMSE Random Forest: 9.92&quot;</code></pre>
-<pre class="r"><code>print(c(&quot;Mean Decrease in Accuracy when Left out of Bag\n&quot;,avg.importance/nrow(response_predictors)))</code></pre>
-<pre><code>                                                   
-&quot;Mean Decrease in Accuracy when Left out of Bag\n&quot; 
-                                        timeChange 
-                                &quot;24.6992990667209&quot; 
-                                     carbohydrates 
-                                &quot;2.20925064831221&quot; 
-                                     glycemicIndex 
-                                &quot;3.00428495352867&quot; 
-                                                AM 
-                                &quot;6.05803979262478&quot; 
-                                             fruit 
-                                &quot;2.74059590135028&quot; 
-                                             grain 
-                               &quot;0.181507910525992&quot; 
-                                            inulin 
-                              &quot;-0.756832920148976&quot; 
-                                            banana 
-                                &quot;4.38382957926663&quot; 
-                                              wine 
-                                &quot;8.35413216346833&quot; 
-                                    last_meal_TIME 
-                                &quot;7.34424804445345&quot; 
-                                         diversity 
-                                &quot;1.72728913753542&quot; </code></pre>
-<pre class="r"><code>varImpPlot(RF.glucoseChange,main = &quot;Variable Importance for Random Forest&quot;)</code></pre>
-<p><img src="figure/3_dataMining.Rmd/randomForest-1.png" width="672" style="display: block; margin: auto;" /></p>
+print(paste(&quot;Avg RMSE Random Forest:&quot;,RF.RMSE ))
+print(c(&quot;Mean Decrease in Accuracy when Left out of Bag\n&quot;,avg.importance/nrow(response_predictors)))
+
+varImpPlot(RF.glucoseChange,main = &quot;Variable Importance for Random Forest&quot;)</code></pre>
 <pre class="r"><code>## test to find the best tuning parameter
 # -----------------------------------
 set.seed(1)
@@ -544,12 +520,12 @@ for (lambda in seq(0.000,0.005,0.001)){
     minRMSE = RMSE.boost
   }
   
-}</code></pre>
-<pre><code>[1] &quot;lambda&quot;           &quot;0&quot;                &quot;MSE&quot;             
-[4] &quot;31.8962191524945&quot; &quot;100&quot;             </code></pre>
-<pre class="r"><code>minLambda  # 0.001</code></pre>
-<pre><code>[1] 0</code></pre>
-<pre class="r"><code>## test to find the best number of trees
+}
+
+minLambda  # 0.001
+
+
+## test to find the best number of trees
 # -----------------------------------
 
 numTrees = seq(0,160000,5000)
@@ -575,25 +551,26 @@ par(mfrow = c(1,1))
 # effect of number of trees
 plot(numTrees,tree_RMSE, main = &quot;Effect of Boosting with more Trees&quot;, ylab = &quot;RMSE&quot;, xlab = &quot;Number of Trees&quot;, pch = 16)
 # plot(numTrees.RF,tree_RMSE.RF, main = &quot;Effect of Random Forest with more Trees&quot;, ylab = &quot;RMSE&quot;, xlab = &quot;Number of Trees&quot;, pch = 16)
-lines(numTrees,tree_RMSE)</code></pre>
-<p><img src="figure/3_dataMining.Rmd/boosting-1.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code># plot relative importance of factors
-boost.summary = summary(boost.glucoseChange, yaxt=&quot;n&quot;)</code></pre>
-<p><img src="figure/3_dataMining.Rmd/boosting-2.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>ggplot(boost.summary) + 
+lines(numTrees,tree_RMSE)
+
+
+# plot relative importance of factors
+boost.summary = summary(boost.glucoseChange, yaxt=&quot;n&quot;)
+ggplot(boost.summary) + 
   aes(x = factor(var, levels = rev(boost.summary$var)), 
       y = rel.inf) + 
   geom_bar(stat=&quot;identity&quot;, fill = &quot;blue&quot;) + 
   labs(x = &quot;model feature&quot;, y = &quot;relative importance&quot;) + 
-  coord_flip()</code></pre>
-<p><img src="figure/3_dataMining.Rmd/boosting-3.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>par(mfrow = c(2,2))
+  coord_flip()
+
+par(mfrow = c(2,2))
 plot(boost.glucoseChange, i = &quot;timeChange&quot;)
 plot(boost.glucoseChange, i = &quot;last_meal_TIME&quot;)
 plot(boost.glucoseChange, i = &quot;carbohydrates&quot;)
-plot(boost.glucoseChange, i = &quot;glycemicIndex&quot;)</code></pre>
-<p><img src="figure/3_dataMining.Rmd/boosting-4.png" width="672" style="display: block; margin: auto;" /></p>
-<pre class="r"><code># Find the RMSE for the model with optimized lambda using LOOCV
+plot(boost.glucoseChange, i = &quot;glycemicIndex&quot;)
+
+
+# Find the RMSE for the model with optimized lambda using LOOCV
 # -----------------------------------
 avg.RMSE.boost = 0
 
@@ -615,31 +592,9 @@ for (i in 1:nrow(response_predictors)){
   avg.RMSE.boost = avg.RMSE.boost + RMSE.boost
 }
 
-summary(boost.glucoseChange)</code></pre>
-<pre><code>                                            var      rel.inf
-timeChange                           timeChange 91.529436274
-last_meal_TIME                   last_meal_TIME  6.220720280
-carbohydrates                     carbohydrates  1.302890839
-glycemicIndex                     glycemicIndex  0.519689046
-AM                                           AM  0.180229518
-grain                                     grain  0.098172141
-diversity                             diversity  0.054084989
-fruit                                     fruit  0.044100896
-wine                                       wine  0.043845687
-banana                                   banana  0.005801169
-inulin                                   inulin  0.001029161
-carbohydrates:grain         carbohydrates:grain  0.000000000
-glycemicIndex:fruit         glycemicIndex:fruit  0.000000000
-glycemicIndex:inulin       glycemicIndex:inulin  0.000000000
-AM:banana                             AM:banana  0.000000000
-fruit:banana                       fruit:banana  0.000000000
-glycemicIndex:banana       glycemicIndex:banana  0.000000000
-carbohydrates:diversity carbohydrates:diversity  0.000000000
-inulin:diversity               inulin:diversity  0.000000000</code></pre>
-<pre class="r"><code>boosting.RMSE = round(avg.RMSE.boost/nrow(response_predictors),2)
+summary(boost.glucoseChange)
+boosting.RMSE = round(avg.RMSE.boost/nrow(response_predictors),2)
 print(paste(&quot;Average RMSE for Boosting: &quot;,boosting.RMSE))</code></pre>
-<pre><code>[1] &quot;Average RMSE for Boosting:  15.29&quot;</code></pre>
-<p><img src="figure/3_dataMining.Rmd/boosting-5.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>RMSE.results = data.frame(model = c(&quot;linear regression&quot;, &quot;k-nearest neighbor (k = 5)&quot;,
                                            &quot;random forest&quot;, &quot;boosting random forest&quot;),
                         RMSE = c(LM.RMSE, knn.RMSE, RF.RMSE, boosting.RMSE))
@@ -656,7 +611,6 @@ table.plot &lt;- gtable_add_grob(table.plot,
                      grobs = rectGrob(gp = gpar(fill = NA, lwd = 2)),
                      t = 1, l = 1, r = ncol(table.plot))
 grid.draw(table.plot)</code></pre>
-<p><img src="figure/3_dataMining.Rmd/rmseResults-1.png" width="672" style="display: block; margin: auto;" /></p>
 <div id="session-information" class="section level2">
 <h2>Session information</h2>
 <!-- Insert the session information into the document -->
@@ -683,8 +637,8 @@ loaded via a namespace (and not attached):
  [5] munsell_0.4.3    colorspace_1.3-2 plyr_1.8.4       stringr_1.2.0   
  [9] tools_3.3.3      git2r_0.19.0     htmltools_0.3.5  lazyeval_0.2.0  
 [13] yaml_2.1.14      rprojroot_1.2    digest_0.6.12    tibble_1.3.0    
-[17] Matrix_1.2-8     evaluate_0.10.1  rmarkdown_1.6    labeling_0.3    
-[21] stringi_1.1.5    scales_0.4.1     backports_1.0.5 </code></pre>
+[17] Matrix_1.2-8     evaluate_0.10.1  rmarkdown_1.6    stringi_1.1.5   
+[21] scales_0.4.1     backports_1.0.5 </code></pre>
 </div>
 
 <hr>

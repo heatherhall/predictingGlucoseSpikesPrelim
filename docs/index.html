@@ -11,7 +11,7 @@
 
 
 
-<title>Project Overview: predicting blood sugar spikes from personal diet</title>
+<title>Project Overview:</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -202,20 +202,22 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">Project Overview: predicting blood sugar spikes from personal diet</h1>
+<h1 class="title toc-ignore">Project Overview:</h1>
 
 </div>
 
 
+<div id="predicting-blood-sugar-spikes-from-personal-diet" class="section level1">
+<h1>Predicting blood sugar spikes from personal diet</h1>
 <center>
 <img src="figures/cgmExample.png" alt="Figure 1: Representative Day in Data Set Blood sugar levels are shown varying over a single day with red and blue dots representing spikes and minimums, respectively. The approximate time windows for which dietary information is collected for each blood sugar spike are shown alternating in yellow and purple. As shown, the food entered into the dietary log (shown here with black lines) tends to fall in the windows prior to each blood guar spike. Note that some spikes have no dietary information, which may be the result of missing diet log information and so these windows were discarded from the models." style="width:60.0%" />
 </center>
-<p>The main purpose of this project was to identify dietary factors that contribute to spikes in blood sugar levels for a pre-diabetic individual. Four models were used to predict height of blood sugar spikes: linear regression, weighted k-nearest neighbor, random forest, and boosted regression. Each model was tuned to optimize the root mean squared error. The prediction results of these models is reported in predictive.txt.</p>
+<p>The main purpose of this project was to identify dietary factors that contribute to spikes in blood sugar levels for a pre-diabetic individual. Four models were used to predict height of blood sugar spikes: linear regression, weighted k-nearest neighbor, random forest, and boosted regression. Each model was tuned to optimize the root mean squared error. A description of the analysis methods is given in the <a href="about.html">About</a> page.</p>
 <p><em>For analysis, see links below:</em></p>
 <ul>
-<li><a href="0_preprocessing.html">data preprocessing</a></li>
-<li><a href="1_featureSelection.html">feature selection</a></li>
-<li><a href="2_dataTransformation.html">data transformation</a></li>
+<li><a href="0_projectLibrary.html">project library</a></li>
+<li><a href="1_preprocessing.html">data preprocessing</a></li>
+<li><a href="2_featureSelection.html">feature selection</a></li>
 <li><a href="3_dataMining.html">data mining</a></li>
 </ul>
 <p></br></p>
@@ -229,6 +231,7 @@ $(document).ready(function () {
 <center>
 <img src="figures/variableImportanceRF.png" alt="*Most Influential Variables for Random Forest** Pictured here is the relatively importance of the variables in random forest (above) and boosting (right). The %IncMSE is increase in MSE upon removing the variable from the model and IncNodePurity is the decrease in node purity upon removing the variable from the model. The time for a spike to occur and the time since the last meal are the most important predictors of the height of a glucose spike in this model." style="width:70.0%" />
 </center>
+</div>
 </div>
 
 <hr>
