@@ -1,7 +1,7 @@
 ---
-title: "Untitled"
-author: "First Last"
-date: YYYY-MM-DD
+title: "Project library"
+author: "Heather Hall"
+date: 2015-08-05
 output: html_document
 ---
 
@@ -27,14 +27,484 @@ knitr::read_chunk("chunks.R")
 <!-- Add your analysis here -->
 
 # Data import
-```{r dataReadFunctions, message=F}
+```{r dataReadFunctions, message=F, eval = F}
+
+
+# function: readConversionChart
+#---------------------------------------------
+# The purpose of this function is to store the chart 
+# for converting the myfitnesspal entries into food groups,
+# types etc. It removes the columns regarding number of entries, date
+# and entries
+# parameters: full path name for conversion chart
+# assumptions: file is in correct format with correct column names
+
+readConversionChart <- function(filepath){
+  # import the conversion chart and remove the uneccesary columns
+  #---------------------------------------------
+  conversion.chart <- read.delim(filepath,stringsAsFactors = FALSE)
+  conversion.chart$num_entries <- NULL
+  conversion.chart$Entries <- NULL
+  conversion.chart$date <- NULL
+  
+  ## Convert Description to description in conversion chart so names match
+  names(conversion.chart) = c("description","Food.group","food","species","additional_desc" )
+  
+  return(conversion.chart)
+}
+
+
+
+# function: readMyFitnessPal
+#---------------------------------------------
+# The purpose of this function is to store all myFitnessPal
+# entries into a single dataframe names food_data. It adds
+# a category column if this is missing in the file (old files)
+# parameters: path storing .csv files in myFitnessPal Format
+# assumptions: all files in folder are myFitnessPal Format
+
+readMyFitnessPal <- function(food.path, conversion.path){
+  
+  # read in food logs
+  food_data = read.csv(food.path)
+  food_data$calories = as.numeric(food_data$calories)
+  
+  # import the conversion chart and remove the uneccesary columns
+  conversion.chart <- readConversionChart(conversion.path)
+  
+  ## Convert Description to description in conversion chart so names match
+  names(conversion.chart) = c("description","Food.group","food","species","additional_desc" )
+  merged <- merge(food_data, conversion.chart)
+  
+  return(merged)
+}
+
+
+
+# Function: readSingleDexcom
+#----------------------------------------
+# The purpose of this function is to read in blood sugar readings
+# from the Dexcom continuous glucose monitor and store the data in 
+# a data frame. It separates the glucose and meter values
+
+# reads old folder from Summer 2015
+
+# parameters: full path name for glucose file, name of data frame
+# assumptions: raw data files from dalia
+
+readDexcomFile <- function(filepath){
+  
+  # Read in the glucose data
+  all_sugar <- read.table(filepath, fill = TRUE, header = TRUE, stringsAsFactors = FALSE)
+
+  # remove columns with "low" glucose and convert to numeric
+  all_sugar = all_sugar[all_sugar$GlucoseValue != "Low",]
+  all_sugar = all_sugar[all_sugar$GlucoseValue != "High",]
+  
+  # pull out the glucose and meter values
+  glucose <- all_sugar[,3:5]
+  glucose$DisplayTime <- mdy_hm(paste(glucose$GlucoseDisplayDate,glucose$GlucoseDisplayTime,sep = " "))
+
+  # Convert glucose values into numeric values
+  glucose$GlucoseValue = as.numeric(glucose$GlucoseValue)
+
+  # assign names to data frames in the global name space
+  return(glucose)
+
+  
+}
+
+
+
+# Funciton: readTravelLog
+# ------------------------------------------
+# The purpose of this function is to read the travel 
+# dates into a dataframe and format the dates into datetime
+
+# parameters: path name for the travel dates file
+# assumption: file in the correct format
+
+readTravelLog <- function(filepath){
+  
+  travel_dates <- read.table(filepath,header = TRUE,stringsAsFactors = FALSE)
+  
+  # convert to time
+  travel_dates$absolute_depart.date = mdy_hm(paste(travel_dates$Depart.Date,travel_dates$Depart.Time, sep = " "))
+  travel_dates$absolute_arrive.date = mdy_hm(paste(travel_dates$Arrive.Date,travel_dates$Arrive.Time, sep = " "))
+  
+  return(travel_dates)
+  
+}
+
+
 
 ```
 
 
+# Annotation functions
+```{r annotationFunctions, eval = F, message = F}
+
+
+markGlucosePeaks <- function(glucose, spikeCutOff = 30, minSpike = 120){
+  
+  # Add new rows
+  glucose$peak = c(rep(0,nrow(glucose)))
+  glucose$timeChange = c(rep(0,nrow(glucose)))
+  glucose$glucoseChange = c(rep(0,nrow(glucose)))
+  
+  # Initialize the min and max values
+  minIndex = 1
+  minValue = 300
+  maxIndex = 1
+  maxValue = 0
+  
+  # for each of the rows
+  for (i in 2:(nrow(glucose)-1)){
+    
+    # set the glucose values for comparison
+    previousGV <- glucose$GlucoseValue[i-1]
+    currentGV <- glucose$GlucoseValue[i]
+    nextGV <- glucose$GlucoseValue[i+1]
+    
+    ## if the glucose value is missing, skip
+    if (is.na(currentGV)){
+      next
+    }
+    
+    # Height of the peak is the current value minus the last minumum
+    # glucose$timeChange = glucose$GlucoseDisplayTime[i] - glucose$GlucoseDisplayDate[lastPeak]
+    glucoseChange = currentGV - minValue
+    
+    
+    # if it is a glucose spike
+    if (currentGV > previousGV & currentGV > nextGV & glucoseChange > spikeCutOff & currentGV > minSpike){
+      # mark that you found a peak and  set the height of the spike
+      glucose$peak[i] = "max"
+      glucose$glucoseChange[i] = as.numeric(glucoseChange)
+      
+      # We found a max, so can safely store last min value as a min
+      glucose$peak[minIndex] = "min"
+      # the drop in glucose is the current min minus the previous max
+      glucose$glucoseChange[minIndex] = as.numeric(minValue - maxValue)
+      # glucose$timeChange[minIndex] =  glucose$DisplayTime[minIndex] - glucose$DisplayTime[maxIndex] ### BUG: gives different units
+      glucose$timeChange[minIndex] = as.numeric(difftime(glucose$DisplayTime[minIndex],glucose$DisplayTime[maxIndex],units="mins"))
+      
+      # Set this as the last maximum found
+      maxIndex = i
+      maxValue = currentGV
+      # glucose$timeChange[i] = glucose$DisplayTime[maxIndex] - glucose$DisplayTime[minIndex]
+      glucose$timeChange[i] = as.numeric(difftime(glucose$DisplayTime[maxIndex],glucose$DisplayTime[minIndex],units="mins"))
+      
+      # begin the search for the next minimum
+      minValue = 300
+    } 
+    # Check whether this is a minimum
+    if (currentGV <= minValue){
+      minValue = currentGV
+      minIndex = i
+    } 
+  }
+  
+  # return the adjusted dataframe
+  return(glucose)
+}
+
+
+addDietaryFeatures <- function(food.times, food.logs){
+  
+  # extra weird things
+  meals <- c("breakfast","lunch","dinner","snack")
+  food.times$recorded_time <- mdy_hm(paste(food.times$Date, food.times$TIME, sep = " "))
+  
+  # create features of interest
+  food.times$calories <- rep(0,nrow(food.times))
+  food.times$carbohydrates <- rep(0,nrow(food.times))
+  food.times$sugar <- rep(0,nrow(food.times))
+  food.times$glycemicIndex <- rep(0,nrow(food.times))
+  
+  food.times$AM <- rep(0,nrow(food.times))
+  food.times$fruit <- rep(0,nrow(food.times))
+  food.times$grain <- rep(0,nrow(food.times))
+  food.times$inulin <- rep(0,nrow(food.times))
+  food.times$banana <- rep(0,nrow(food.times))
+  food.times$wine <- rep(0,nrow(food.times))
+  food.times$last_meal_TIME <- rep(0,nrow(food.times))
+  food.times$meal_timing <- rep(0,nrow(food.times))
+  food.times$foods <- rep(NA,nrow(food.times))
+  food.times$groups <- rep(NA,nrow(food.times))
+  
+  
+  ## for each item with a time stamp
+  for (i in 1:nrow(food.times)){
+    
+    # find items for that day
+    food.on.date <- food.logs[which(food.logs$entry_date == food.times[i,]$Date),]
+    
+    # pick all items for that meal
+    if (food.times[i,]$Food %in% meals){
+      food.on.date <- food.on.date[which(tolower(food.on.date$category) == food.times[i,]$Meal),]
+      
+      # if there is another entry for the meal (ie rasp = breakfast and breakfast = breakfast)
+      # Remove that entry from the bulk meal calculation
+      if(!is.na(food.times[i,]$Minus.Meal)){
+        # find all entries for that day and specific meal
+        extra_entry <- food.times[which((food.times$Meal == food.times[2,]$Meal) & (food.times$Date == food.times[2,]$Date)),]
+        # the extra entry is the one where "Food" is not described as a meal
+        extra_entry <- extra_entry[!(extra_entry$Food %in% meals),]
+        # pick the food entries that do not include that entry
+        food.on.date <- food.on.date[!(food.on.date$description %in% extra_entry$description),]
+      }
+    }
+    # if there are multiple descriptions listed
+    else if (length(unlist(strsplit(food.times[i,]$description, ","))) > 1){
+      ## split the food items and look for all of them
+      items = unlist(strsplit(food.times[i,]$description, ","))
+      food.on.date <- food.on.date[which(food.on.date$description %in% items),]
+      
+    }
+    # if there is only a single item
+    else {
+      ## pick the meal with the right description and right meal
+      food.on.date <- food.on.date[which(food.on.date$description == food.times[i,]$description),]
+      # some entries may have double items for a day... which will cause an issue, but the meals
+      # may not match, so just take the first entry
+      #food.on.date <- food.on.date[which(tolower(food.on.date$category) == food.times[i,]$Meal),]
+      food.on.date <- food.on.date[1,]
+    }
+    
+    # if the entry contained inulin fiber, check yes
+    if("Inulin Fiber" %in% food.on.date$description){
+      food.times$inulin[i] = 1
+    }
+    # if the entry is in the morning
+    if(food.times$AM_PM[i] == "am"){
+      food.times$AM[i] = 1
+    }
+    # pick the food groups for each item
+    groups <- unique(unlist(sapply(food.on.date$Food.group,function(x) strsplit(x,","))))
+    food.times$groups[i] <- paste(groups,collapse = ",")
+    
+    if ("grain" %in% groups){
+      food.times$grain[i] = 1
+    }
+    if ("fruit" %in% groups){
+      food.times$fruit[i] = 1
+    }
+    # pick the food for each item
+    foods <- unique(unlist(sapply(food.on.date$food,function(x) strsplit(x,","))))
+    food.times$foods[i] <- paste(foods,collapse = ",")
+    
+    if ("bananas" %in% foods){
+      food.times$banana[i] = 1
+    }
+    if ("wine" %in% foods){
+      food.times$wine[i] = 1
+    }
+    # If its not the first item in the food time log
+    if (i > 1){
+      # last meal is the last entry in the food log 
+      food.times$last_meal_TIME[i] = difftime(food.times[i,]$recorded_time, food.times[i-1,]$recorded_time, units = "mins")
+    }
+    
+    
+    # Set the values for each of the predictors
+    food.times$calories[i] = sum(food.on.date$calories, na.rm = TRUE)
+    food.times$carbohydrates[i] = sum(food.on.date$carbs, na.rm = TRUE)
+    food.times$sugar[i] = sum(food.on.date$sugar, na.rm = TRUE)
+    food.times$glycemicIndex[i] = sum(food.on.date$sugar, na.rm = TRUE) - sum(food.on.date$fiber, na.rm = TRUE)
+    
+    
+  }
+  
+  
+  return(food.times)
+}
 
 
 
+
+
+associateFoodAndCGM <- function(glucose.peaks, annotated.food.logs){
+  # gluose_spikes contains the dates that are in both glucose and food.time
+  
+  # Find time window for the response (current time - timeChange - 30) using display time
+  glucose.peaks$windowMin <- glucose.peaks$DisplayTime - minutes(glucose.peaks$timeChange) - minutes(30)
+  
+  # convert columns to date-times for comparison
+  annotated.food.logs$recorded_time <- mdy_hm(paste(annotated.food.logs$Date,annotated.food.logs$TIME,sep= " "))
+  
+  # add feature columns
+  glucose.peaks$calories <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$carbohydrates <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$sugar <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$glycemicIndex <- rep(0,nrow(glucose.peaks))
+  
+  glucose.peaks$AM <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$fruit <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$grain <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$inulin <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$banana <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$wine <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$last_meal_TIME <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$meal_timing <- rep(0,nrow(glucose.peaks))
+  glucose.peaks$foods <- rep(NA,nrow(glucose.peaks))
+  glucose.peaks$groups <- rep(NA,nrow(glucose.peaks))
+  glucose.peaks$diversity <- rep(0,nrow(glucose.peaks))
+  
+  
+  
+  for (i in 1:nrow(glucose.peaks)){
+    # pull out the response window max and min
+    window_max <- glucose.peaks$DisplayTime[i]
+    window_min <- glucose.peaks$windowMin[i]
+    
+    # pull out the predictors for that day and time window
+    predictors <- annotated.food.logs[which(annotated.food.logs$Date == glucose.peaks$GlucoseDisplayDate[i]),]
+    predictors <- predictors[which(predictors$recorded_time > window_min & predictors$recorded_time < window_max),]
+    
+    # If there is food recorded in that window, copy the food data over to glucose.peaks
+    #if (nrow(predictors) > 0){
+    glucose.peaks$calories[i] <- sum(predictors$calories, na.rm = TRUE)
+    glucose.peaks$carbohydrates[i] <-sum(predictors$carbohydrates, na.rm = TRUE)
+    glucose.peaks$sugar[i] <- sum(predictors$sugar, na.rm = TRUE)
+    glucose.peaks$glycemicIndex[i] <- sum(predictors$glycemicIndex, na.rm = TRUE)
+    
+    glucose.peaks$AM[i] <- min(1,sum(predictors$AM, na.rm = TRUE))
+    glucose.peaks$fruit[i] <- min(1,sum(predictors$fruit, na.rm = TRUE))
+    glucose.peaks$grain[i] <- min(1,sum(predictors$grain, na.rm = TRUE))
+    glucose.peaks$inulin[i] <- min(1,sum(predictors$inulin, na.rm = TRUE))
+    glucose.peaks$banana[i] <- min(1,sum(predictors$banana, na.rm = TRUE))
+    glucose.peaks$wine[i] <- min(1,sum(predictors$wine, na.rm = TRUE))
+    glucose.peaks$last_meal_TIME[i] <- mean(predictors$last_meal_TIME, na.rm = TRUE)
+    
+    ## combine the food groups just to carry them over for additional information
+    groups <- unique(unlist(sapply(predictors$groups,function(x) strsplit(x,","))))
+    # define diversity as the number of food groups sampled
+    glucose.peaks$diversity[i] = length(groups)
+    glucose.peaks$groups[i] <- paste(groups,collapse = ",")
+    
+    # also combine the foods consumed in that hour to have the infor
+    foods <- unique(unlist(sapply(predictors$foods,function(x) strsplit(x,","))))
+    glucose.peaks$foods[i] <- paste(foods,collapse = ",")
+    
+  }
+  
+  
+  return(glucose.peaks)
+}
+
+
+```
+
+# Timezone and travel functions
+```{r timeFunctions, eval = F, message = F}
+
+
+# Function: markTimeZones
+# ----------------------------------------------
+# The purpose of this function is to mark the time zone
+# of each dexcom glucose reading based on Travel Dates and Flights
+# The timezone is stored in an extra column
+
+# parameters: 3 data frames -- dexcom CGM data, travel dates, timezone codes
+# assumptions: files in correct format
+# native timezone is PDT
+# date format is yyyy-mm-dd 
+
+markTimeZones <- function(time_glucose, travel_dates, TZ.codes){
+  
+  # convert the display time to mdy_hm time
+  time_glucose$DisplayTime = ymd_hms(time_glucose$DisplayTime,tz = "America/Los_Angeles")
+  time_glucose = time_glucose[!is.na(time_glucose$DisplayTime),] # 2016 march 13 fails to parse
+  
+  # add extra columns
+  time_glucose$TimeZone  <- "PDT" 
+  
+  # set last arrival time to be before any dates in glucose data
+  last_arrival = mdy_hm("12/22/2013 12:43",tz = "America/Los_Angeles")
+  current_TZ = "PDT"
+  
+  i = 1
+  
+  ## Mark all glucose data with the correct time zone
+  for (i in 1:nrow(travel_dates)){
+    # convert departure and arrival time to pacific time
+    depart_time <- force_tz(travel_dates$absolute_depart.date[i], TZ.codes[TZ.codes$abbreviation == travel_dates$Depart.TZ[i],]$R_code)
+    departure_pacific <- with_tz(depart_time,"America/Los_Angeles")
+    arrive_time <- force_tz(travel_dates$absolute_arrive.date[i], TZ.codes[TZ.codes$abbreviation == travel_dates$Arrive.TZ[i],]$R_code)
+    arrival_pacific <- with_tz(arrive_time,"America/Los_Angeles")
+    
+    
+    # The time between last arrival and current departure is in the last departures time zone
+    stay <- time_glucose[(time_glucose$DisplayTime > last_arrival & time_glucose$DisplayTime < departure_pacific),]
+    
+    if(nrow(stay) > 0 ){
+      time_glucose[which(time_glucose$DisplayTime > last_arrival & time_glucose$DisplayTime < departure_pacific),]$TimeZone = current_TZ
+    }
+    
+    # mark in flight times as "in-flight"
+    flight <- time_glucose[which(time_glucose$DisplayTime >= departure_pacific & time_glucose$DisplayTime <= arrival_pacific),]
+    if (nrow(flight) > 0){
+      time_glucose[which(time_glucose$DisplayTime >= departure_pacific & time_glucose$DisplayTime <= arrival_pacific),]$TimeZone = "flying"
+    }
+    
+    # reset the current timezone and last departure_pacific
+    last_arrival = arrival_pacific
+    current_TZ = travel_dates$Arrive.TZ[i]
+    
+  }
+  
+  # return the data frame with a new column noting the current time zone
+  return(time_glucose)
+  
+}
+
+
+removeTravelDates <- function(all_glucose, travel_path, TZ.path){
+  
+  # Read in travel log
+  travel_dates = readTravelLog(travel_path)
+  
+  # Read in time zone codes
+  TZ.codes <- read.table(TZ.path, stringsAsFactors = FALSE)
+  names(TZ.codes) <- c("abbreviation","R_code")
+  
+  # # ADD TIMEZONE TO GLUCOSE DATA
+  time_glucose = markTimeZones(all_glucose, travel_dates, TZ.codes)
+  
+  # mark all the travel days
+  travel_001 = time_glucose[!(time_glucose$TimeZone %in% c("PST","PDT")),]$GlucoseDisplayDate
+  
+  # Remove days with travel/flying for 001
+  all_glucose = all_glucose[!(all_glucose$GlucoseDisplayDate %in% travel_001),]
+  
+  return(all_glucose)
+  
+}
+
+
+```
+
+
+# Data exclusion functions
+```{r dataExclusion, eval = F, message = F}
+
+removePeaksWithoutMeals <- function(annotated.cgm.meals){
+  
+  # add column for missing food information
+  annotated.cgm.meals$missing.Food <- rep(0,nrow(annotated.cgm.meals))
+  annotated.cgm.meals[annotated.cgm.meals$calories == 0 & annotated.cgm.meals$glycemicIndex == 0,]$missing.Food = 1
+  
+  # print number meals removed
+  # print(table(annotated.cgm.meals$missing.Food))
+  
+  ## take only the entries for which we know what he ate beforehand -- he did eat something
+  with.food <- annotated.cgm.meals[annotated.cgm.meals$missing.Food == 0,]
+  
+  return(with.food)
+}
+
+```
 
 
 

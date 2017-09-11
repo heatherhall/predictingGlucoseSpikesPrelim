@@ -29,7 +29,7 @@ The dataset consists of continuous blood sugar levels and detailed time-stamped 
 In order to properly relate the two datasets, the blood sugar measurements were compressed into minimum and maximum blood sugar levels, with maximum values hereby referred to as “spikes.” Windows were created starting from thirty minutes before a blood sugar level minimum until a spike, assuming that only events in this time window affected the spike. From this only windows that contained dietary log information were used to build models. This outcome variable was chosen because the height of the spike appeared to be both normally distributed and independent. See Figure 1 one the next for a pictorial representation. After processing, there were 94 glucose spikes with dietary information.
 
 
-*Click on this [link](0_preprocessing.html) to see my results.* 
+*Click on this [link](1_preprocessing.html) to see my analysis* 
 <!-- Displays message on index page: Click on this link to see my results. -->
 
 </br></br>
@@ -42,6 +42,7 @@ Many of the features selected from the log were correlated, such as sugar, fiber
 
 Timing of meals has been reported to affect blood sugar spikes and so several predictors were added to model this phenomenon. Time of day (coded as morning vs not) was included in the model since the subject recorded noticing correlation in blood sugar spikes and mornings. Finally, time since the last meal was included to represent consistency of meal times.  
 
+*Click on this [link](2_featureSelection.html) to see my analysis* 
 
 </br></br>
 
@@ -57,6 +58,8 @@ No additional transformations were applied to the predictors, with the exception
 ## **5. DATA MINING**
 
 Prior to building models, the predictors were checked for interactions through graphing and assessing the significance of each interaction using a bonferroni corrected Pearson correlation test (Table 1). All of the predictors showed some significant interaction with another predictor, however, many of these correlation values were week.  Only significant interactions with correlation coefficients greater than 0.5 were used in the models.
+
+*Click on this [link](3_dataMining) to see my analysis* 
 
 
 <center>![**Table 1: Interactions  Between Predictors:** All of the predictors used for this  model had some form of significant  interaction with another predictor.  These interaction terms were used in  the models and likely reduced the  ability of each model to accurately  predict the height of the glucose spike.  Once more predictors are included in  the model, such as blood pressure  and activity, the predictive power of  these models will likely increase. ](figures/interactions.png){ width=50% }</center>

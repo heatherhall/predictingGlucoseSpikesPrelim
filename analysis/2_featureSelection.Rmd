@@ -1,7 +1,7 @@
 ---
 title: "Feature selection"
-author: "First Last"
-date: YYYY-MM-DD
+author: "Heather Hall"
+date: 2015-08-05
 output: html_document
 ---
 
@@ -56,12 +56,12 @@ source(paste(personal.library.directory, "project_library.R", sep = "/"))
 
 # file paths
 # ------------
-food.data.path =  "/Users/hhall/predictingGlucoseSpikesPrelim/foodLogs.csv"
-conversion.chart.path = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Food Logs/graphs/food_chart.txt"
-glucose.file = "/Users/hhall/Box\ Sync/Heathers Externally Shareable Files/Snyder/Glucose/001_data/glucose_data_R.txt"
-travel.file = "/Users/hhall/Box\ Sync/Heathers Externally Shareable Files/Snyder/Calendar/flight_times_July.txt"
-TZ.path = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Calendar/timezone_codes.txt"
-food.timing.file = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Calendar/food_timing.txt"
+food.data.path =  "/Users/hhall/predictingGlucoseSpikesPrelim_data/foodLogs.csv"
+conversion.chart.path = "/Users/hhall/predictingGlucoseSpikesPrelim_data/food_chart.txt"
+glucose.file = "/Users/hhall/predictingGlucoseSpikesPrelim_data/glucose_data_R.txt"
+travel.file = "/Users/hhall/predictingGlucoseSpikesPrelim_data/flight_times_July.txt"
+TZ.path = "/Users/hhall/predictingGlucoseSpikesPrelim_data/timezone_codes.txt"
+food.timing.file = "/Users/hhall/predictingGlucoseSpikesPrelim_data/food_timing.txt"
 
 
 
@@ -90,7 +90,6 @@ cgm.readings = markGlucosePeaks(cgm.readings, min.peak.height, min.peak)
 # keep only dates with recorded meal times
 dates.with.meal.times <- unique(food.times$Date)
 cgm.readings <- cgm.readings[which(cgm.readings$GlucoseDisplayDate %in% dates.with.meal.times),] ### Have 14373 glucose readings with timestamped foods
-glucose_dates = cgm.readings
 
 
 ########################################################
@@ -115,22 +114,30 @@ food.times = addDietaryFeatures(food.times, food.logs)
 # associate glucose spikes with food features
 cgm.meal.features <- associateFoodAndCGM(cgm.readings, food.times)
 
-# print som facts about the features
-head(cgm.meal.features)
+# print data set
+current.table = cgm.meal.features[sample(1:nrow(cgm.meal.features), 10), ]
+head(current.table)
 
 ```
 
 
+### Data exclusion
 ```{r removeMissingData}
 
+# look at only glucose spikes
+cgm.meal.features = cgm.meal.features[cgm.meal.features$peak == "max", ]
+
+# remove peaks without meals
 cgm.meal.features = removePeaksWithoutMeals(cgm.meal.features)
 
+# print final number of observations
+print(paste(nrow(cgm.meal.features), "total glucose spikes"))
 ```
 
+### distribution of glucose concentrations
+```{r concentrations, include = T, collapse = T}
 
-```{r concentrations, include = F}
-
-par(mfrow = c(2,2))
+par(mfrow = c(1,2))
 plot(cgm.meal.features$GlucoseValue, main = "Glucose concentration during spike", ylab = "glucose concentration (mg/dL)")
 hist(cgm.meal.features$GlucoseValue, main = "Glucose concentration during spike", xlab = "glucose concentration (mg/dL)")
 
@@ -139,8 +146,8 @@ hist(cgm.meal.features$glucoseChange, main = "Magnitude of Blood Sugar Spikes", 
 
 ```
 
-
-```{r selectFeatures}
+# Select features
+```{r selectFeatures, collapse = T}
 ## remove variables that wont be used for prediction
 features = c("timeChange","carbohydrates","glycemicIndex", 
                        "AM","fruit","grain","inulin","banana",     
@@ -149,11 +156,25 @@ predictors <- cgm.meal.features[,names(cgm.meal.features) %in% features]
 
 ```
 
+### Final feature matrix
+```{r featureMatrix}
+head(predictors)
+```
+
+
+# Data transformation
 ```{r finalTransformations}
 # define a data frame with predictors and response
 outcome.predictors = cbind(cgm.meal.features$glucoseChange, predictors)
 
+# only time since last meal was transformed
+outcome.predictors$last_meal_TIME = log(outcome.predictors$last_meal_TIME)
 
+```
+
+
+# Relationship between predictors and outcome
+```{r predictorOutcomes, collapse = T}
 par(mfrow = c(3,3))
 ## compare the predictors with the outcome to find the relationship
 plot(outcome.predictors$carbohydrates, outcome.predictors[, 1], ylab = "glucose change", xlab = "carbohydrates", pch = 20)
@@ -164,10 +185,10 @@ plot(outcome.predictors$banana, outcome.predictors[, 1], ylab = "glucose change"
 plot(outcome.predictors$inulin, outcome.predictors[, 1], ylab = "glucose change", xlab = "inulin", pch = 20)
 plot(outcome.predictors$wine, outcome.predictors[, 1], ylab = "glucose change", xlab = "wine", pch = 20)
 plot(outcome.predictors$AM, outcome.predictors[, 1], ylab = "glucose change", xlab = "AM", pch = 20)
-plot(log(outcome.predictors$last_meal_TIME), outcome.predictors[, 1], ylab = "glucose change", xlab = "log(time since last meal)", pch = 20)
-
-
+plot(outcome.predictors$last_meal_TIME, outcome.predictors[, 1], ylab = "glucose change", xlab = "log(time since last meal)", pch = 20)
 ```
+
+
 
 ## Session information
 

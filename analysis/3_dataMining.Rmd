@@ -1,7 +1,7 @@
 ---
-title: "Untitled"
-author: "First Last"
-date: YYYY-MM-DD
+title: "Data mining"
+author: "Heather Hall"
+date: 2015-08-05
 output: html_document
 ---
 
@@ -57,12 +57,12 @@ source(paste(personal.library.directory, "project_library.R", sep = "/"))
 
 # file paths
 # ------------
-food.data.path =  "/Users/hhall/predictingGlucoseSpikesPrelim/foodLogs.csv"
-conversion.chart.path = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Food Logs/graphs/food_chart.txt"
-glucose.file = "/Users/hhall/Box\ Sync/Heathers Externally Shareable Files/Snyder/Glucose/001_data/glucose_data_R.txt"
-travel.file = "/Users/hhall/Box\ Sync/Heathers Externally Shareable Files/Snyder/Calendar/flight_times_July.txt"
-TZ.path = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Calendar/timezone_codes.txt"
-food.timing.file = "/Users/hhall/Box Sync/Heathers Externally Shareable Files/Snyder/Calendar/food_timing.txt"
+food.data.path =  "/Users/hhall/predictingGlucoseSpikesPrelim_data/foodLogs.csv"
+conversion.chart.path = "/Users/hhall/predictingGlucoseSpikesPrelim_data/food_chart.txt"
+glucose.file = "/Users/hhall/predictingGlucoseSpikesPrelim_data/glucose_data_R.txt"
+travel.file = "/Users/hhall/predictingGlucoseSpikesPrelim_data/flight_times_July.txt"
+TZ.path = "/Users/hhall/predictingGlucoseSpikesPrelim_data/timezone_codes.txt"
+food.timing.file = "/Users/hhall/predictingGlucoseSpikesPrelim_data/food_timing.txt"
 
 
 
@@ -87,23 +87,17 @@ cgm.readings = markGlucosePeaks(cgm.readings, min.peak.height, min.peak)
 ### Data exclusion: only keep dates with recorded meal times
 ########################################################
 
-
 # keep only dates with recorded meal times
 dates.with.meal.times <- unique(food.times$Date)
 cgm.readings <- cgm.readings[which(cgm.readings$GlucoseDisplayDate %in% dates.with.meal.times),] ### Have 14373 glucose readings with timestamped foods
-glucose_dates = cgm.readings
-
 
 ########################################################
 ### Data exclusion -- remove travel dates because sensor time is unreliable switching time zones
 ########################################################
 
-
-# remove travel from glucose data
+# remove travel from glucose data and food.times
 cgm.readings = removeTravelDates(cgm.readings, travel.file, TZ.path)
-
-# remove travel from food.times
-food.times = food.times[food.times$Date %in% cgm.readings$GlucoseDisplayDate, ] 
+food.times = food.times[food.times$Date %in% cgm.readings$GlucoseDisplayDate, ]
 
 # combine features from food log with food timing
 food.times = addDietaryFeatures(food.times, food.logs)
@@ -111,6 +105,7 @@ food.times = addDietaryFeatures(food.times, food.logs)
 # associate glucose spikes with food features
 cgm.meal.features <- associateFoodAndCGM(cgm.readings, food.times)
 
+# remove peaks without meals
 cgm.meal.features = removePeaksWithoutMeals(cgm.meal.features)
 
 ## remove variables that wont be used for prediction
@@ -246,7 +241,7 @@ print(paste("LOOCV KNN RMSE:", knn.RMSE))
 ```
 
 
-```{r randomForest}
+```{r randomForest, eval = F}
 ## calculate the average RSE for Leave out out 
 set.seed(1)
 avg.RMSE.RF = 0
@@ -280,7 +275,7 @@ varImpPlot(RF.glucoseChange,main = "Variable Importance for Random Forest")
 
 ```
 
-```{r boosting}
+```{r boosting, eval = F}
 
 
 
@@ -388,7 +383,7 @@ print(paste("Average RMSE for Boosting: ",boosting.RMSE))
 
 ```
 
-```{r rmseResults}
+```{r rmseResults, eval = F}
 
 RMSE.results = data.frame(model = c("linear regression", "k-nearest neighbor (k = 5)",
                                            "random forest", "boosting random forest"),
