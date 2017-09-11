@@ -2,11 +2,11 @@
 
 [project website]: https://heatherhall.github.io/predictingGlucoseSpikesPrelim/
 
-
-![**Figure 1: Representative Day in Data Set** Blood sugar levels are shown varying over a single day with red and blue dots representing spikes and minimums, respectively. The approximate time windows for which dietary information is collected for each blood sugar spike are shown alternating in yellow and purple. As shown, the food entered into the dietary log (shown here with black lines) tends to fall in the windows prior to each blood guar spike. Note that some spikes have no dietary information, which may be the result of missing diet log information and so these windows were discarded from the models.](docs/figures/cgmExample.png | width=100)
-
 The main purpose of this project was to identify dietary factors that contribute to spikes in blood sugar levels for a pre-diabetic individual. Four models were used to predict height of blood sugar spikes: linear regression, weighted k-nearest neighbor, random forest, and boosted regression. Each model was tuned to optimize the root mean squared error. A description of the analysis methods is given in the [About](docs/About.html) page.
 
+
+
+![**Figure 1: Representative Day in Data Set** Blood sugar levels are shown varying over a single day with red and blue dots representing spikes and minimums, respectively. The approximate time windows for which dietary information is collected for each blood sugar spike are shown alternating in yellow and purple. As shown, the food entered into the dietary log (shown here with black lines) tends to fall in the windows prior to each blood sugar spike. Note that some spikes have no dietary information, which may be the result of missing diet log information and so these windows were discarded from the models.](docs/figures/cgmExample.png){:height="50%" width="50%"}
 
 # Methods
 
