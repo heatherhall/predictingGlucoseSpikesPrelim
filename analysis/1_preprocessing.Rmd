@@ -43,7 +43,6 @@ travel.file = "/Users/hhall/predictingGlucoseSpikesPrelim_data/flight_times_July
 TZ.path = "/Users/hhall/predictingGlucoseSpikesPrelim_data/timezone_codes.txt"
 food.timing.file = "/Users/hhall/predictingGlucoseSpikesPrelim_data/food_timing.txt"
 
-
 ```
 
 # Load libraries
@@ -163,22 +162,27 @@ ggplot(cgm.readings) +
 # Data exclusion
 ```{r dataExclusion}
 
+# keep only glucose spikes
+# --------------------------
+cgm.readings = cgm.readings[cgm.readings$peak == peak.type,]
+
 # keep only dates with recorded meal times
+# --------------------------------
 dates.with.meal.times <- unique(food.times$Date)
 cgm.readings <- cgm.readings[which(cgm.readings$GlucoseDisplayDate %in% dates.with.meal.times),] 
 
 # count number of peaks
 peaks.remaining = length(cgm.readings[which(cgm.readings$peak %in% peak.type),]$peak)
-print(paste(number.peaks - peaks.remaining, "peaks excluded because lacked any meal data"))
+print(paste(peaks.remaining, "peaks remaining with meal data"))
 
 # remove travel from glucose data and food timing
+# --------------------------------
 cgm.readings = removeTravelDates(cgm.readings, travel.file, TZ.path)
 food.times = food.times[food.times$Date %in% cgm.readings$GlucoseDisplayDate, ] 
 
-
 # print number of days removed from travel
 peaks.post.travel = length(cgm.readings[which(cgm.readings$peak %in% peak.type),]$peak)
-print(paste(peaks.remaining - peaks.post.travel, "peaks excluded because occured during travel"))
+print(paste(peaks.post.travel, "peaks remaining after excluding travel"))
 
 
 ```

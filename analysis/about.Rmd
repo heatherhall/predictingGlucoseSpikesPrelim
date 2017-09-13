@@ -15,7 +15,7 @@ output:
 <!-- [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/ -->
 
 
-<center>![**Figure 1: Representative Day in Data Set** Blood sugar levels are shown varying over a single day with red and blue dots representing spikes and minimums, respectively. The approximate time windows for which dietary information is collected for each blood sugar spike are shown alternating in yellow and purple. As shown, the food entered into the dietary log (shown here with black lines) tends to fall in the windows prior to each blood guar spike. Note that some spikes have no dietary information, which may be the result of missing diet log information and so these windows were discarded from the models.](figures/cgmExample.png){ width=60% }</center>
+<center>![**Figure 1: Representative Day in Data Set** Blood sugar levels are shown varying over a single day with red and blue dots representing spikes and minimums, respectively. The approximate time windows for which dietary information is collected for each blood sugar spike are shown alternating in yellow and purple. As shown, the food entered into the dietary log (shown here with black lines) tends to fall in the windows prior to each blood guar spike. Note that some spikes have no dietary information, which may be the result of missing diet log information and so these windows were discarded from the models.](addedFigures/cgmExample.png){ width=60% }</center>
 
 
 ## **1. DATASET**
@@ -26,7 +26,7 @@ The dataset consists of continuous blood sugar levels and detailed time-stamped 
 
 ## **2. DATA PREPROCESSING**
 
-In order to properly relate the two datasets, the blood sugar measurements were compressed into minimum and maximum blood sugar levels, with maximum values hereby referred to as “spikes.” Windows were created starting from thirty minutes before a blood sugar level minimum until a spike, assuming that only events in this time window affected the spike. From this only windows that contained dietary log information were used to build models. This outcome variable was chosen because the height of the spike appeared to be both normally distributed and independent. See Figure 1 one the next for a pictorial representation. After processing, there were 94 glucose spikes with dietary information.
+In order to properly relate the two datasets, the blood sugar measurements were compressed into minimum and maximum blood sugar levels, with maximum values hereby referred to as “spikes.” Windows were created starting from thirty minutes before a blood sugar level minimum until a spike, assuming that only events in this time window affected the spike. From this only windows that contained dietary log information were used to build models. This outcome variable was chosen because the height of the spike appeared to be both normally distributed and independent. See Figure 1 one the next for a pictorial representation. After processing, there were 69 glucose spikes with dietary information.
 
 
 *Click on this [link](1_preprocessing.html) to see my analysis* 
@@ -51,7 +51,7 @@ Timing of meals has been reported to affect blood sugar spikes and so several pr
 No additional transformations were applied to the predictors, with the exception of the transformations described previously. Many transformations were attempted (log, exponentials, factors), but the best relationships appeared to be linear as shown. The relationships appeared weak, but appeared significant enough to include all predictors in the models. 
 
 
-<center>![**Figure 2: Relationship between predictors and outcome.**  Y-axis shows the height of the blood  sugar spike, while the x-axis shows  each predictor. Diversity and inulin  appear to reduce the height of the  blood sugar spike, while  carbohydrates time since last meal  appear to increase the height of the  blood sugar spike. ](figures/predictorsVsOutcome.png)</center>
+<center>![**Figure 2: Relationship between predictors and outcome.**  Y-axis shows the height of the blood  sugar spike, while the x-axis shows  each predictor. Diversity and inulin  appear to reduce the height of the  blood sugar spike, while  carbohydrates time since last meal  appear to increase the height of the  blood sugar spike. ](figure/2_featureSelection.Rmd/predictorOutcomes-1.png)</center>
 
 </br></br>
 
@@ -62,7 +62,7 @@ Prior to building models, the predictors were checked for interactions through g
 *Click on this [link](3_dataMining) to see my analysis* 
 
 
-<center>![**Table 1: Interactions  Between Predictors:** All of the predictors used for this  model had some form of significant  interaction with another predictor.  These interaction terms were used in  the models and likely reduced the  ability of each model to accurately  predict the height of the glucose spike.  Once more predictors are included in  the model, such as blood pressure  and activity, the predictive power of  these models will likely increase. ](figures/interactions.png){ width=50% }</center>
+<center>![**Table 1: Interactions  Between Predictors:** All of the predictors used for this  model had some form of significant  interaction with another predictor.  These interaction terms were used in  the models and likely reduced the  ability of each model to accurately  predict the height of the glucose spike.  Once more predictors are included in  the model, such as blood pressure  and activity, the predictive power of  these models will likely increase. ](figure/3_dataMining.Rmd/correlation table-1.png){ width=50% }</center>
 
 
 
@@ -74,7 +74,7 @@ Prior to building models, the predictors were checked for interactions through g
 The linear relationship between the predictors and the outcome suggested that a simple linear model may best fit the data. Before fitting a linear regression model, best subset selection was performed since the number of predictors, including interactions, was more than 10% of the observations. The regsubsets() function from the “leaps” package in R was used to select the best subset predictors using the Cp estimate of MSE on the entire dataset (Figure 3). The selected predictors were then used to calculate the linear regression model using the lm() package provided by R. 
 
 
-<center>![**Figure 3: Best Subset Selection for Linear Regression** The lowest Cp estimate of MSE for the linear model using best subset selection was the model using 4 predictors (as shown by the red dot). These predictors were banana, wine, glycemicIndex:fruit, glycemicIndex:inulin.](figures/bestSubsetSelection.png){ width=50% }</center>
+<center>![**Figure 3: Best Subset Selection for Linear Regression** The lowest Cp estimate of MSE for the linear model using best subset selection was the model using 4 predictors (as shown by the red dot). These predictors were banana, wine, glycemicIndex:fruit, glycemicIndex:inulin.](figure/3_dataMining.Rmd/bestsubset-1.png){ width=50% }</center>
 
 
 ####  **5.2 K-NEAREST NEIGHBOR**
@@ -82,7 +82,7 @@ The linear relationship between the predictors and the outcome suggested that a 
 In order to determine test a model with more flexibility than linear regression, k-nearest neighbor was first attempted to fit the data. The number of clusters for the model was chosen using the function train.kknn() from the R package “kknn,” selecting up to 21 clusters with an “optimal” kernel for the search. For the entire dataset, the mean squared error started to plateau around 11 clusters (Figure 4). Thus, a k-nearest neighbor model with k = 11 was built using the function kknn() from the same package. This model included all of the predictors and all significant interactions described above (see DATA MINING), but forward selection will be used in the future to determine which predictors to include in the model 
 
 
-<center>![**Figure 4: Selecting number of clusters for K-nearest neighbor.** The MSE for a model of the entire dataset begins to plateau at k = 11, highlighted by the red dot.](figures/optimizingK.png){ width=50% }</center>
+<center>![**Figure 4: Selecting number of clusters for K-nearest neighbor.** The MSE for a model of the entire dataset begins to plateau at k = 11, highlighted by the red dot.](figure/3_dataMining.Rmd/kNearestNeighbor-1.png){ width=50% }</center>
 
 
 
@@ -92,7 +92,7 @@ In order to determine test a model with more flexibility than linear regression,
 Random forest were chosen as the third model in order to try a tree-based model for fitting the data. The randomForest() function from the R package “randomForest” was used to build the model. This function performs out-of-bag validation to select predictors for the model and so all predictors and interactions described above (see DATA MINING) were included. 
 
 
-<center>![**Figure 5: Most Influential Variables for Random Forest** Pictured here is the relatively importance of the variables in random forest (above) and boosting (right). The %IncMSE is increase in MSE upon removing the variable from the model and IncNodePurity is the decrease in node purity upon removing the variable from the model. The time for a spike to occur and the time since the last meal are the most important predictors of the height of a glucose spike in this model.](figures/variableImportanceRF.png){ width=70% }</center>
+<center>![**Figure 5: Most Influential Variables for Random Forest** Pictured here is the relatively importance of the variables in random forest (above) and boosting (right). The %IncMSE is increase in MSE upon removing the variable from the model and IncNodePurity is the decrease in node purity upon removing the variable from the model. The time for a spike to occur and the time since the last meal are the most important predictors of the height of a glucose spike in this model.](figure/3_dataMining.Rmd/varImportanceRF-2.png){ width=70% }</center>
 
 
 
@@ -108,6 +108,6 @@ Boosted regression was used to attempt to build a more robust model from the wea
 
 After tuning the parameters and selecting the variables as described above, each of the models was tested to determine performance as measured by the root mean squared error (RMSE). The RMSE was calculated with leave-one-out cross-validation. More specifically, each model was trained on (n-1) observations and the RMSE was calculated for the remaining observation. This was repeated for every observation and the average of the RMSE is reported in Table 2 below.
 
-<center>![**Table 2: Comparing Model Performance** The RMSE is similar for all models, but the random forest model (highlighted) performs best with a RMSE of 25.15](figures/LOOCV.png){ width=40% }</center>
+<center>![**Table 2: Comparing Model Performance** The RMSE is similar for all models, but the random forest model (highlighted) performs best with a RMSE of 22.34](figure/3_dataMining.Rmd/rmseResults-1.png){ width=40% }</center>
 
 

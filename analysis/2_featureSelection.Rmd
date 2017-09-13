@@ -86,10 +86,13 @@ cgm.readings = markGlucosePeaks(cgm.readings, min.peak.height, min.peak)
 ### Data exclusion: only keep dates with recorded meal times
 ########################################################
 
+# keep only max peaks
+cgm.readings = cgm.readings[cgm.readings$peak == "max", ]
+
 
 # keep only dates with recorded meal times
 dates.with.meal.times <- unique(food.times$Date)
-cgm.readings <- cgm.readings[which(cgm.readings$GlucoseDisplayDate %in% dates.with.meal.times),] ### Have 14373 glucose readings with timestamped foods
+cgm.readings <- cgm.readings[which(cgm.readings$GlucoseDisplayDate %in% dates.with.meal.times),] 
 
 
 ########################################################
@@ -127,27 +130,21 @@ head(current.table)
 # remove peaks without meals
 cgm.meal.features = removePeaksWithoutMeals(cgm.meal.features)
 
-# convert min-peaks and null-peaks to non-peaks
-# look at only glucose spikes
-cgm.meal.features[cgm.meal.features$peak != "max", ]$peak <- 0
-
-print("FIX ME!")
 
 # print final number of observations
 peaks = length(cgm.meal.features$peak[cgm.meal.features$peak == "max"])
-non.peaks = length(cgm.meal.features$peak[cgm.meal.features$peak != "max"])
-print(paste(c(peaks, " total glucose spikes, ", non.peaks, " total non-spikes"), collapse = ""))
+print(paste(peaks, " total glucose spikes" , sep = ""))
 ```
 
 ### distribution of glucose concentrations
 ```{r concentrations, include = T, collapse = T}
 
 par(mfrow = c(1,2))
-plot(cgm.meal.features$GlucoseValue, main = "Glucose concentration during spike", ylab = "glucose concentration (mg/dL)")
-hist(cgm.meal.features$GlucoseValue, main = "Glucose concentration during spike", xlab = "glucose concentration (mg/dL)")
+plot(cgm.meal.features$GlucoseValue, main = "Glucose concentration during spike", ylab = "glucose concentration (mg/dL)", cex.main = 0.7)
+hist(cgm.meal.features$GlucoseValue, main = "Glucose concentration during spike", xlab = "glucose concentration (mg/dL)", cex.main = 0.7)
 
-plot(cgm.meal.features$glucoseChange, main = "Magnitude of Blood Sugar Spikes", ylab = "glucose concentration (mg/dL)")
-hist(cgm.meal.features$glucoseChange, main = "Magnitude of Blood Sugar Spikes", xlab = "glucose concentration (mg/dL)")
+plot(cgm.meal.features$glucoseChange, main = "Magnitude of Blood Sugar Spikes", ylab = "glucose concentration (mg/dL)", cex.main = 0.7)
+hist(cgm.meal.features$glucoseChange, main = "Magnitude of Blood Sugar Spikes", xlab = "glucose concentration (mg/dL)", cex.main = 0.7)
 
 ```
 

@@ -3,11 +3,11 @@ output_dir: "../docs"
 include: [".nojekyll"]
 exclude: ["include"]
 navbar:
-  title: predictingGlucoseSpikesPrelim
+  title: predicting Glucose Spikes
   left:
-    - text: "Home"
+    - text: "Overview"
       href: index.html
-    - text: "About"
+    - text: "Results"
       href: about.html
     - text: "License"
       href: license.html

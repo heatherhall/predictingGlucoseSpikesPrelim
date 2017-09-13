@@ -95,6 +95,9 @@ cgm.readings <- cgm.readings[which(cgm.readings$GlucoseDisplayDate %in% dates.wi
 ### Data exclusion -- remove travel dates because sensor time is unreliable switching time zones
 ########################################################
 
+# keep only max peaks
+cgm.readings = cgm.readings[cgm.readings$peak == "max", ]
+
 # remove travel from glucose data and food.times
 cgm.readings = removeTravelDates(cgm.readings, travel.file, TZ.path)
 food.times = food.times[food.times$Date %in% cgm.readings$GlucoseDisplayDate, ]
@@ -108,7 +111,6 @@ cgm.meal.features <- associateFoodAndCGM(cgm.readings, food.times)
 # remove peaks without meals
 cgm.meal.features = removePeaksWithoutMeals(cgm.meal.features)
 
-
 ## remove variables that wont be used for prediction
 features = c("timeChange","carbohydrates","glycemicIndex", 
                        "AM","fruit","grain","inulin","banana",     
@@ -120,6 +122,9 @@ outcome.predictors = cbind(cgm.meal.features$glucoseChange, predictors)
 
 ```
 </br>
+
+
+
 # Correlations between predictors
 ```{r determineCorrelations}
 
@@ -145,7 +150,7 @@ for(i in 1:ncol(predictors)){
 ### correlation table
 ```{r correlation table, collapse = T}
 all.correlations = all.correlations[-1,]
-strong.correlations = all.correlations[abs(as.numeric(all.correlations$`correlation coefficient`)) > 0.5,]
+strong.correlations = all.correlations[abs(as.numeric(all.correlations$`correlation coefficient`)) >= 0.6,]
 cor.results = data.frame(strong.correlations)
 
 # plot the RMSE for comparison
@@ -189,11 +194,10 @@ print(paste(c(nrow(test.set), " test samples, ", nrow(train.set), " training sam
 # Linear Regression
 
 
-
 ### Best subset selection
 ```{r bestsubset, collapse = T, message = F}
-# 2 linear redundancies found so can only have ncol(response_predictors)- 2 maximum predictors
-regfit.interaction <- regsubsets(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+
+regfit.interaction <- regsubsets(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana,
                                  response_predictors, nvmax = ncol(response_predictors)-2)
 reget.summary <- summary(regfit.interaction)
 
@@ -212,13 +216,17 @@ points(which.min(reget.summary$bic), reget.summary$bic[which.min(reget.summary$b
 
 # determine which features to use
 print(names(coef(regfit.interaction,which.min(reget.summary$cp)))[-1])
+print(names(coef(regfit.interaction,which.min(reget.summary$bic)))[-1])
+print(names(coef(regfit.interaction,which.max(reget.summary$adjr2)))[-1])
+
+# keeping: timeChange, fruit, diversity
 
 ```
 
 ### Linear regression model
 ```{r linearRegression, message = F}
 
-lm = lm(glucoseChange~AM+fruit+last_meal_TIME+diversity+inulin:diversity, data = response_predictors, subset = train)
+lm = lm(glucoseChange~timeChange+fruit+diversity, data = response_predictors, subset = train)
 summary_lm <- summary(lm)
 print(summary_lm)
 
@@ -233,7 +241,7 @@ avg.RMSE.lm = 0
 for (i in 1:nrow(response_predictors)){
   test = i
   train = -i
-  lm = lm(glucoseChange~AM+fruit+last_meal_TIME+diversity+inulin:diversity, data = response_predictors , subset = train)
+  lm = lm(glucoseChange~timeChange+fruit+diversity, data = response_predictors , subset = train)
   summary_lm <- summary(lm)
 
   pred.lm <- predict(lm,response_predictors[test,])
@@ -257,7 +265,7 @@ print(paste("LOOCV RMSE LM:",LM.RMSE) )
 
 ## LOOCV cross validation
 set.seed(0)
-CV.kknn.interactions <- train.kknn(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin, response_predictors, distance = 2, kmax = 21, kernel = "optimal")
+CV.kknn.interactions <- train.kknn(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana, response_predictors, distance = 2, kmax = 21, kernel = "optimal")
 
 # plot MSE and elbow method to determine K
 par(mfrow = c(1,1))
@@ -275,7 +283,7 @@ print(paste("LOOCV KNN RMSE:", knn.RMSE))
 </br>
 
 # Random Forest
-```{r randomForest, eval = F}
+```{r randomForest, eval = T}
 ## calculate the average RSE for Leave out out 
 set.seed(1)
 avg.RMSE.RF = 0
@@ -286,7 +294,7 @@ for(i in 1:nrow(response_predictors)){
   test = i
   test.set = 
     
-    RF.glucoseChange = randomForest(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+    RF.glucoseChange = randomForest(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana,
                                     data = response_predictors, subset = train, mtry = sqrt(ncol(response_predictors)-1), importance = TRUE)
   
   # calculate MSE
@@ -304,7 +312,7 @@ print(paste("Avg RMSE Random Forest:",RF.RMSE ))
 ```
 
 ### variable importance RF
-```{r varImportanceRF, collapse=T, eval = F}
+```{r varImportanceRF, collapse=T, eval = T}
 # set up dataset
 variable.decrease = data.frame(variable = names(avg.importance), mean.decrease = avg.importance/nrow(response_predictors))
 variable.order = variable.decrease[order(variable.decrease$mean.decrease), ]$variable
@@ -327,7 +335,7 @@ varImpPlot(RF.glucoseChange,main = "Variable Importance for Random Forest")
 # Boosting
 
 ### optimize tuning parameter
-```{r boostingTuning, collapse = T, eval = F}
+```{r boostingTuning, collapse = T, eval = T}
 set.seed(1)
 train = sample(1:nrow(response_predictors), nrow(response_predictors)*0.75)
 test = (-train)
@@ -336,7 +344,7 @@ minLambda = 7
 minRMSE = 100
 
 for (lambda in seq(0.000,0.005,0.001)){
-  boost.glucoseChange <- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+  boost.glucoseChange <- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana,
                              data = response_predictors[train,], distribution = "gaussian",
                              n.trees = 5000, interaction.depth = 4,
                              verbose = F,shrinkage = lambda)
@@ -356,14 +364,14 @@ print(paste("best tuning parameter:", minLambda))
 ```
 
 ### optimize number of trees
-```{r treesBoosting, collapse = T, eval = F}
-numTrees = seq(0,20000,5000)
+```{r treesBoosting, collapse = T, eval = T}
+numTrees = seq(0,25000,2500)
 tree_RMSE = rep(0, length(numTrees))
 
 i = 1
 for (trees in numTrees){
   ## Find the model using all predictors to make plots
-  boost.glucoseChange <- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+  boost.glucoseChange <- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana,
                              data = response_predictors, distribution = "gaussian",
                              n.trees = trees, interaction.depth = 4,
                              verbose = F, shrinkage = minLambda)
@@ -377,10 +385,11 @@ for (trees in numTrees){
 par(mfrow = c(1,1))
 plot(numTrees,tree_RMSE, main = "Effect of Boosting with more Trees", ylab = "RMSE", xlab = "Number of Trees", pch = 16)
 # lines(numTrees,tree_RMSE)
+numTrees = 15000
 ```
 
 ### plot relative importance
-```{r boostingFactorsImportance, collapse = T, eval = F}
+```{r boostingFactorsImportance, collapse = T, eval = T}
 
 # relative importance of factors
 boost.summary = summary(boost.glucoseChange, plotit = F)
@@ -393,7 +402,7 @@ ggplot(boost.summary) +
 
 ```
 ### plot marginal effects
-```{r boostMarginalEffects, collapse=T, eval = F}
+```{r boostMarginalEffects, collapse=T, eval = T}
 par(mfrow = c(2,2))
 plot(boost.glucoseChange, i = "timeChange")
 plot(boost.glucoseChange, i = "last_meal_TIME")
@@ -404,8 +413,8 @@ plot(boost.glucoseChange, i = "glycemicIndex")
 
 
 
-# LOOCV to determine RMSE
-```{r boostingRMSE, eval = F, tidy = T}
+### LOOCV to determine RMSE
+```{r boostingRMSE, collapse = T, eval = T, tidy = T}
 
 avg.RMSE.boost = 0
 
@@ -414,9 +423,9 @@ for (i in 1:nrow(response_predictors)){
   train = -i
   
   ## Find the model using all predictors to make plots
-  boost.glucoseChange <- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+  boost.glucoseChange <- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana,
                              data = response_predictors[train,], distribution = "gaussian",
-                             n.trees = 5000, interaction.depth = 4,
+                             n.trees = numTrees, interaction.depth = 4,
                              verbose = F,shrinkage = minLambda)
   
   
@@ -433,7 +442,7 @@ print(paste("Average RMSE for Boosting: ",boosting.RMSE))
 ```
 
 # LOOCV RMSE Results
-```{r rmseResults, eval = F}
+```{r rmseResults, eval = T}
 
 RMSE.results = data.frame(model = c("linear regression", "k-nearest neighbor (k = 5)",
                                            "random forest", "boosting random forest"),
