@@ -272,15 +272,15 @@ div.tocify {
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="index.html">predictingGlucoseSpikesPrelim</a>
+      <a class="navbar-brand" href="index.html">predicting Glucose Spikes</a>
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">Home</a>
+  <a href="index.html">Overview</a>
 </li>
 <li>
-  <a href="about.html">About</a>
+  <a href="about.html">Results</a>
 </li>
 <li>
   <a href="license.html">License</a>
@@ -313,13 +313,15 @@ div.tocify {
 shared across the workflowr files. -->
 <!-- Update knitr chunk options -->
 <!-- Insert the date the file was last updated -->
-<p><strong>Last updated:</strong> 2017-09-11</p>
+<p><strong>Last updated:</strong> 2017-09-13</p>
 <!-- Insert the code version (Git commit SHA1) if Git repository exists and R
  package git2r is installed -->
-<p><strong>Code version:</strong> cf8449a</p>
+<p><strong>Code version:</strong> 2c087f8</p>
 <!-- Add your analysis here -->
 <!-- Add your analysis here -->
-<p></br> # Correlations between predictors</p>
+<p></br></p>
+<div id="correlations-between-predictors" class="section level1">
+<h1>Correlations between predictors</h1>
 <pre class="r"><code>all.correlations = data.frame(matrix(ncol = 4, nrow = 1))
 names(all.correlations) = c(&quot;term one&quot;, &quot;term two&quot;, &quot;correlation coefficient&quot;, &quot;Bonferonni P-value&quot;)
 
@@ -339,7 +341,7 @@ for(i in 1:ncol(predictors)){
 <div id="correlation-table" class="section level3">
 <h3>correlation table</h3>
 <pre class="r"><code>all.correlations = all.correlations[-1,]
-strong.correlations = all.correlations[abs(as.numeric(all.correlations$`correlation coefficient`)) &gt; 0.5,]
+strong.correlations = all.correlations[abs(as.numeric(all.correlations$`correlation coefficient`)) &gt;= 0.6,]
 cor.results = data.frame(strong.correlations)
 
 # plot the RMSE for comparison
@@ -353,6 +355,7 @@ table.plot &lt;- gtable_add_grob(table.plot,
                      t = 1, l = 1, r = ncol(table.plot))
 grid.draw(table.plot)</code></pre>
 <p><img src="figure/3_dataMining.Rmd/correlation%20table-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
 </div>
 <div id="format-feature-matrix" class="section level1">
 <h1>Format feature matrix</h1>
@@ -373,19 +376,18 @@ train.set = as.data.frame(response_predictors[train,])
 
 
 print(paste(c(nrow(test.set), &quot; test samples, &quot;, nrow(train.set), &quot; training samples&quot;), collapse = &quot;&quot;))</code></pre>
-<pre><code>[1] &quot;83 test samples, 246 training samples&quot;</code></pre>
+<pre><code>[1] &quot;18 test samples, 51 training samples&quot;</code></pre>
 <p></br></p>
 </div>
 <div id="linear-regression" class="section level1">
 <h1>Linear Regression</h1>
 <div id="best-subset-selection" class="section level3">
 <h3>Best subset selection</h3>
-<pre class="r"><code># 2 linear redundancies found so can only have ncol(response_predictors)- 2 maximum predictors
-regfit.interaction &lt;- regsubsets(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+<pre class="r"><code>
+regfit.interaction &lt;- regsubsets(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana,
                                  response_predictors, nvmax = ncol(response_predictors)-2)
 Warning in leaps.setup(x, y, wt = wt, nbest = nbest, nvmax = nvmax,
-force.in = force.in, : 2 linear dependencies found
-Reordering variables and trying again:
+force.in = force.in, : 1 linear dependencies found
 reget.summary &lt;- summary(regfit.interaction)
 
 
@@ -404,37 +406,41 @@ points(which.min(reget.summary$bic), reget.summary$bic[which.min(reget.summary$b
 <pre class="r"><code>
 # determine which features to use
 print(names(coef(regfit.interaction,which.min(reget.summary$cp)))[-1])
-[1] &quot;timeChange&quot;           &quot;AM&quot;                   &quot;inulin&quot;              
-[4] &quot;wine&quot;                 &quot;glycemicIndex:fruit&quot;  &quot;glycemicIndex:inulin&quot;</code></pre>
+[1] &quot;timeChange&quot; &quot;fruit&quot;      &quot;diversity&quot; 
+print(names(coef(regfit.interaction,which.min(reget.summary$bic)))[-1])
+[1] &quot;timeChange&quot; &quot;diversity&quot; 
+print(names(coef(regfit.interaction,which.max(reget.summary$adjr2)))[-1])
+[1] &quot;timeChange&quot;          &quot;carbohydrates&quot;       &quot;banana&quot;             
+[4] &quot;diversity&quot;           &quot;glycemicIndex:fruit&quot; &quot;fruit:banana&quot;       
+
+# keeping: timeChange, fruit, diversity</code></pre>
 </div>
 <div id="linear-regression-model" class="section level3">
 <h3>Linear regression model</h3>
-<pre class="r"><code>lm = lm(glucoseChange~AM+fruit+last_meal_TIME+diversity+inulin:diversity, data = response_predictors, subset = train)
+<pre class="r"><code>lm = lm(glucoseChange~timeChange+fruit+diversity, data = response_predictors, subset = train)
 summary_lm &lt;- summary(lm)
 print(summary_lm)</code></pre>
 <pre><code>
 Call:
-lm(formula = glucoseChange ~ AM + fruit + last_meal_TIME + diversity + 
-    inulin:diversity, data = response_predictors, subset = train)
+lm(formula = glucoseChange ~ timeChange + fruit + diversity, 
+    data = response_predictors, subset = train)
 
 Residuals:
-     Min       1Q   Median       3Q      Max 
--106.961   -8.059   -6.308   -4.575  126.690 
+   Min     1Q Median     3Q    Max 
+-49.96 -19.50  -3.20  15.63  83.49 
 
 Coefficients:
-                 Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)        7.3258     1.9570   3.743 0.000227 ***
-AM                -2.0618     2.3356  -0.883 0.378245    
-fruit             -0.5211     2.4109  -0.216 0.829061    
-last_meal_TIME     5.0395     2.3948   2.104 0.036384 *  
-diversity          2.0441     2.3334   0.876 0.381897    
-diversity:inulin  -0.5647     1.4259  -0.396 0.692417    
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)   83.837      3.774  22.214   &lt;2e-16 ***
+timeChange    10.468      4.210   2.486   0.0165 *  
+fruit         -5.849      3.933  -1.487   0.1437    
+diversity     -9.104      3.946  -2.307   0.0255 *  
 ---
 Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 
-Residual standard error: 30.44 on 240 degrees of freedom
-Multiple R-squared:  0.02286,   Adjusted R-squared:  0.002501 
-F-statistic: 1.123 on 5 and 240 DF,  p-value: 0.3488</code></pre>
+Residual standard error: 26.89 on 47 degrees of freedom
+Multiple R-squared:  0.2253,    Adjusted R-squared:  0.1758 
+F-statistic: 4.555 on 3 and 47 DF,  p-value: 0.006986</code></pre>
 </div>
 <div id="loocv-to-determine-rmse" class="section level3">
 <h3>LOOCV to determine RMSE</h3>
@@ -445,7 +451,7 @@ avg.RMSE.lm = 0
 for (i in 1:nrow(response_predictors)){
   test = i
   train = -i
-  lm = lm(glucoseChange~AM+fruit+last_meal_TIME+diversity+inulin:diversity, data = response_predictors , subset = train)
+  lm = lm(glucoseChange~timeChange+fruit+diversity, data = response_predictors , subset = train)
   summary_lm &lt;- summary(lm)
 
   pred.lm &lt;- predict(lm,response_predictors[test,])
@@ -459,7 +465,7 @@ for (i in 1:nrow(response_predictors)){
 
 LM.RMSE = round(avg.RMSE.lm/nrow(response_predictors),2)
 print(paste(&quot;LOOCV RMSE LM:&quot;,LM.RMSE) )
-[1] &quot;LOOCV RMSE LM: 15.4&quot;</code></pre>
+[1] &quot;LOOCV RMSE LM: 22.73&quot;</code></pre>
 <p></br></p>
 </div>
 </div>
@@ -467,7 +473,7 @@ print(paste(&quot;LOOCV RMSE LM:&quot;,LM.RMSE) )
 <h1>K-nearest Neighbor</h1>
 <pre class="r"><code>## LOOCV cross validation
 set.seed(0)
-CV.kknn.interactions &lt;- train.kknn(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin, response_predictors, distance = 2, kmax = 21, kernel = &quot;optimal&quot;)
+CV.kknn.interactions &lt;- train.kknn(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana, response_predictors, distance = 2, kmax = 21, kernel = &quot;optimal&quot;)
 
 # plot MSE and elbow method to determine K
 par(mfrow = c(1,1))
@@ -478,7 +484,7 @@ points(number.clusters, CV.kknn.interactions$MEAN.SQU[number.clusters], col = &q
 <pre class="r"><code># print RMSE for LOOCV
 knn.RMSE = round(sqrt(CV.kknn.interactions$MEAN.SQU[number.clusters]), 2)
 print(paste(&quot;LOOCV KNN RMSE:&quot;, knn.RMSE))</code></pre>
-<pre><code>[1] &quot;LOOCV KNN RMSE: 31.65&quot;</code></pre>
+<pre><code>[1] &quot;LOOCV KNN RMSE: 32.61&quot;</code></pre>
 <p></br></p>
 </div>
 <div id="random-forest" class="section level1">
@@ -493,7 +499,7 @@ for(i in 1:nrow(response_predictors)){
   test = i
   test.set = 
     
-    RF.glucoseChange = randomForest(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+    RF.glucoseChange = randomForest(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana,
                                     data = response_predictors, subset = train, mtry = sqrt(ncol(response_predictors)-1), importance = TRUE)
   
   # calculate MSE
@@ -508,6 +514,7 @@ for(i in 1:nrow(response_predictors)){
 
 RF.RMSE = round(avg.RMSE.RF/nrow(response_predictors),2)
 print(paste(&quot;Avg RMSE Random Forest:&quot;,RF.RMSE ))</code></pre>
+<pre><code>[1] &quot;Avg RMSE Random Forest: 22.34&quot;</code></pre>
 <div id="variable-importance-rf" class="section level3">
 <h3>variable importance RF</h3>
 <pre class="r"><code># set up dataset
@@ -519,11 +526,12 @@ ggplot(variable.decrease) +
   aes(y = mean.decrease, x = factor(variable, levels = variable.order)) + 
   geom_bar(stat = &quot;identity&quot;, fill = &quot;blue&quot;) + 
   coord_flip() + 
-  labs(x = &quot;variable name&quot;, y = &quot;mean decrease in accuracy when left out of bag&quot;)
-
+  labs(x = &quot;variable name&quot;, y = &quot;mean decrease in accuracy when left out of bag&quot;)</code></pre>
+<p><img src="figure/3_dataMining.Rmd/varImportanceRF-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>
 # plot variable importance plots
-varImpPlot(RF.glucoseChange,main = &quot;Variable Importance for Random Forest&quot;)
-</code></pre>
+varImpPlot(RF.glucoseChange,main = &quot;Variable Importance for Random Forest&quot;)</code></pre>
+<p><img src="figure/3_dataMining.Rmd/varImportanceRF-2.png" width="672" style="display: block; margin: auto;" /></p>
 <p></br></p>
 </div>
 </div>
@@ -539,7 +547,7 @@ minLambda = 7
 minRMSE = 100
 
 for (lambda in seq(0.000,0.005,0.001)){
-  boost.glucoseChange &lt;- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+  boost.glucoseChange &lt;- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana,
                              data = response_predictors[train,], distribution = &quot;gaussian&quot;,
                              n.trees = 5000, interaction.depth = 4,
                              verbose = F,shrinkage = lambda)
@@ -555,17 +563,18 @@ for (lambda in seq(0.000,0.005,0.001)){
   
 }
 
-print(paste(&quot;best tuning parameter:&quot;, minLambda))</code></pre>
+print(paste(&quot;best tuning parameter:&quot;, minLambda))
+[1] &quot;best tuning parameter: 0.004&quot;</code></pre>
 </div>
 <div id="optimize-number-of-trees" class="section level3">
 <h3>optimize number of trees</h3>
-<pre class="r"><code>numTrees = seq(0,20000,5000)
+<pre class="r"><code>numTrees = seq(0,25000,2500)
 tree_RMSE = rep(0, length(numTrees))
 
 i = 1
 for (trees in numTrees){
   ## Find the model using all predictors to make plots
-  boost.glucoseChange &lt;- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:inulin+AM:banana+fruit:banana+banana:glycemicIndex+diversity:carbohydrates+diversity:inulin,
+  boost.glucoseChange &lt;- gbm(glucoseChange~.+carbohydrates:grain+glycemicIndex:fruit+glycemicIndex:banana+fruit:banana,
                              data = response_predictors, distribution = &quot;gaussian&quot;,
                              n.trees = trees, interaction.depth = 4,
                              verbose = F, shrinkage = minLambda)
@@ -577,8 +586,10 @@ for (trees in numTrees){
 
 # effect of number of trees
 par(mfrow = c(1,1))
-plot(numTrees,tree_RMSE, main = &quot;Effect of Boosting with more Trees&quot;, ylab = &quot;RMSE&quot;, xlab = &quot;Number of Trees&quot;, pch = 16)
-# lines(numTrees,tree_RMSE)</code></pre>
+plot(numTrees,tree_RMSE, main = &quot;Effect of Boosting with more Trees&quot;, ylab = &quot;RMSE&quot;, xlab = &quot;Number of Trees&quot;, pch = 16)</code></pre>
+<p><img src="figure/3_dataMining.Rmd/treesBoosting-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># lines(numTrees,tree_RMSE)
+numTrees = 15000</code></pre>
 </div>
 <div id="plot-relative-importance" class="section level3">
 <h3>plot relative importance</h3>
@@ -590,22 +601,19 @@ ggplot(boost.summary) +
       y = rel.inf) + 
   geom_bar(stat=&quot;identity&quot;, fill = &quot;blue&quot;) + 
   labs(x = &quot;model feature&quot;, y = &quot;relative importance&quot;) + 
-  coord_flip()
-</code></pre>
-</div>
-<div id="plot-marginal-effects" class="section level3">
-<h3>plot marginal effects</h3>
+  coord_flip()</code></pre>
+<p><img src="figure/3_dataMining.Rmd/boostingFactorsImportance-1.png" width="672" style="display: block; margin: auto;" /> ### plot marginal effects</p>
 <pre class="r"><code>par(mfrow = c(2,2))
 plot(boost.glucoseChange, i = &quot;timeChange&quot;)
 plot(boost.glucoseChange, i = &quot;last_meal_TIME&quot;)
 plot(boost.glucoseChange, i = &quot;carbohydrates&quot;)
-plot(boost.glucoseChange, i = &quot;glycemicIndex&quot;)
-</code></pre>
+plot(boost.glucoseChange, i = &quot;glycemicIndex&quot;)</code></pre>
+<p><img src="figure/3_dataMining.Rmd/boostMarginalEffects-1.png" width="672" style="display: block; margin: auto;" /></p>
 </div>
-</div>
-<div id="loocv-to-determine-rmse-1" class="section level1">
-<h1>LOOCV to determine RMSE</h1>
-<pre class="r"><code>avg.RMSE.boost = 0
+<div id="loocv-to-determine-rmse-1" class="section level3">
+<h3>LOOCV to determine RMSE</h3>
+<pre class="r"><code>
+avg.RMSE.boost = 0
 
 for (i in 1:nrow(response_predictors)) {
     test = i
@@ -613,9 +621,8 @@ for (i in 1:nrow(response_predictors)) {
     
     ## Find the model using all predictors to make plots
     boost.glucoseChange &lt;- gbm(glucoseChange ~ . + carbohydrates:grain + glycemicIndex:fruit + 
-        glycemicIndex:inulin + AM:banana + fruit:banana + banana:glycemicIndex + 
-        diversity:carbohydrates + diversity:inulin, data = response_predictors[train, 
-        ], distribution = &quot;gaussian&quot;, n.trees = 5000, interaction.depth = 4, 
+        glycemicIndex:banana + fruit:banana, data = response_predictors[train, 
+        ], distribution = &quot;gaussian&quot;, n.trees = numTrees, interaction.depth = 4, 
         verbose = F, shrinkage = minLambda)
     
     
@@ -628,7 +635,9 @@ for (i in 1:nrow(response_predictors)) {
 }
 
 boosting.RMSE = round(avg.RMSE.boost/nrow(response_predictors), 2)
-print(paste(&quot;Average RMSE for Boosting: &quot;, boosting.RMSE))</code></pre>
+print(paste(&quot;Average RMSE for Boosting: &quot;, boosting.RMSE))
+[1] &quot;Average RMSE for Boosting:  21.37&quot;</code></pre>
+</div>
 </div>
 <div id="loocv-rmse-results" class="section level1">
 <h1>LOOCV RMSE Results</h1>
@@ -648,6 +657,7 @@ table.plot &lt;- gtable_add_grob(table.plot,
                      grobs = rectGrob(gp = gpar(fill = NA, lwd = 2)),
                      t = 1, l = 1, r = ncol(table.plot))
 grid.draw(table.plot)</code></pre>
+<p><img src="figure/3_dataMining.Rmd/rmseResults-1.png" width="672" style="display: block; margin: auto;" /></p>
 <div id="session-information" class="section level2">
 <h2>Session information</h2>
 <!-- Insert the session information into the document -->
@@ -675,7 +685,7 @@ loaded via a namespace (and not attached):
  [9] tools_3.3.3      git2r_0.19.0     htmltools_0.3.5  lazyeval_0.2.0  
 [13] yaml_2.1.14      rprojroot_1.2    digest_0.6.12    tibble_1.3.0    
 [17] Matrix_1.2-8     formatR_1.4      evaluate_0.10.1  rmarkdown_1.6   
-[21] stringi_1.1.5    scales_0.4.1     backports_1.0.5 </code></pre>
+[21] labeling_0.3     stringi_1.1.5    scales_0.4.1     backports_1.0.5 </code></pre>
 </div>
 </div>
 

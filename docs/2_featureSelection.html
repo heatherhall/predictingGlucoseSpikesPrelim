@@ -272,15 +272,15 @@ div.tocify {
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="index.html">predictingGlucoseSpikesPrelim</a>
+      <a class="navbar-brand" href="index.html">predicting Glucose Spikes</a>
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">Home</a>
+  <a href="index.html">Overview</a>
 </li>
 <li>
-  <a href="about.html">About</a>
+  <a href="about.html">Results</a>
 </li>
 <li>
   <a href="license.html">License</a>
@@ -313,10 +313,10 @@ div.tocify {
 shared across the workflowr files. -->
 <!-- Update knitr chunk options -->
 <!-- Insert the date the file was last updated -->
-<p><strong>Last updated:</strong> 2017-09-11</p>
+<p><strong>Last updated:</strong> 2017-09-13</p>
 <!-- Insert the code version (Git commit SHA1) if Git repository exists and R
  package git2r is installed -->
-<p><strong>Code version:</strong> cf8449a</p>
+<p><strong>Code version:</strong> 2c087f8</p>
 <!-- Add your analysis here -->
 <div id="associate-diet-and-cgm" class="section level1">
 <h1>Associate diet and CGM</h1>
@@ -330,67 +330,61 @@ cgm.meal.features &lt;- associateFoodAndCGM(cgm.readings, food.times)
 current.table = cgm.meal.features[sample(1:nrow(cgm.meal.features), 10), ]
 head(current.table)</code></pre>
 <pre><code>      GlucoseDisplayDate GlucoseDisplayTime GlucoseValue
-14740            5/21/15              17:23          117
-8643             4/29/15              23:55          116
-14833            5/22/15               1:28          127
-4161             4/13/15              23:51          111
-1517              4/4/15               1:57           75
-2963              4/9/15              13:27           97
+15069            5/22/15              21:13          134
+12107            5/12/15               8:24          216
+16602            5/28/15              22:07          140
+6256             4/21/15               9:06          158
+2399              4/7/15              13:07          135
+4275             4/14/15               9:21          154
               DisplayTime peak timeChange glucoseChange
-14740 2015-05-21 17:23:00    0          0             0
-8643  2015-04-29 23:55:00    0          0             0
-14833 2015-05-22 01:28:00    0          0             0
-4161  2015-04-13 23:51:00  min        115           -28
-1517  2015-04-04 01:57:00    0          0             0
-2963  2015-04-09 13:27:00    0          0             0
-                windowMin calories carbohydrates sugar glycemicIndex AM
-14740 2015-05-21 16:53:00        0           0.0 0.000         0.000  0
-8643  2015-04-29 23:25:00        0           0.0 0.000         0.000  0
-14833 2015-05-22 00:58:00        0           0.0 0.000         0.000  0
-4161  2015-04-13 21:26:00        0           0.0 0.000         0.000  0
-1517  2015-04-04 01:27:00        0           0.0 0.000         0.000  0
-2963  2015-04-09 12:57:00      246          31.5 5.033         3.143  0
-      fruit grain inulin banana wine last_meal_TIME meal_timing foods
-14740     0     0      0      0    0            NaN           0      
-8643      0     0      0      0    0            NaN           0      
-14833     0     0      0      0    0            NaN           0      
-4161      0     0      0      0    0            NaN           0      
-1517      0     0      0      0    0            NaN           0      
-2963      0     1      0      0    0            347           0  rice
-      groups diversity
-14740                0
-8643                 0
-14833                0
-4161                 0
-1517                 0
-2963   grain         1</code></pre>
+15069 2015-05-22 21:13:00  max        130            51
+12107 2015-05-12 08:24:00  max         30            52
+16602 2015-05-28 22:07:00  max         35            49
+6256  2015-04-21 09:06:00  max         95            59
+2399  2015-04-07 13:07:00  max         70            58
+4275  2015-04-14 09:21:00  max         90            63
+                windowMin calories carbohydrates   sugar glycemicIndex AM
+15069 2015-05-22 18:33:00    0.000       0.00000 0.00000       0.00000  0
+12107 2015-05-12 07:24:00   15.651       3.18276 2.33352       1.98072  1
+16602 2015-05-28 21:02:00    0.000       0.00000 0.00000       0.00000  0
+6256  2015-04-21 07:01:00    0.000       0.00000 0.00000       0.00000  1
+2399  2015-04-07 11:27:00   56.000       0.70000 0.21000      -0.14000  0
+4275  2015-04-14 07:21:00    2.370       0.00000 0.00000       0.00000  1
+      fruit grain inulin banana wine last_meal_TIME meal_timing
+15069     0     0      0      0    0            NaN           0
+12107     1     0      0      0    0         1465.0           0
+16602     0     0      0      0    0            NaN           0
+6256      0     0      0      0    0         1456.0           0
+2399      0     0      0      0    0          195.0           0
+4275      0     0      0      0    0          397.5           0
+                 foods         groups diversity
+15069                                         0
+12107 coffee,pineapple    drink,fruit         2
+16602                                         0
+6256                NA             NA         1
+2399      sole,lettuce fish,vegetable         2
+4275         coffee,NA       drink,NA         2</code></pre>
 <div id="data-exclusion" class="section level3">
 <h3>Data exclusion</h3>
 <pre class="r"><code># remove peaks without meals
 cgm.meal.features = removePeaksWithoutMeals(cgm.meal.features)
 
-# convert min-peaks and null-peaks to non-peaks
-# look at only glucose spikes
-cgm.meal.features[cgm.meal.features$peak != &quot;max&quot;, ]$peak &lt;- 0
 
-print(&quot;FIX ME!&quot;)</code></pre>
-<pre><code>[1] &quot;FIX ME!&quot;</code></pre>
-<pre class="r"><code># print final number of observations
+# print final number of observations
 peaks = length(cgm.meal.features$peak[cgm.meal.features$peak == &quot;max&quot;])
-non.peaks = length(cgm.meal.features$peak[cgm.meal.features$peak != &quot;max&quot;])
-print(paste(c(peaks, &quot; total glucose spikes, &quot;, non.peaks, &quot; total non-spikes&quot;), collapse = &quot;&quot;))</code></pre>
-<pre><code>[1] &quot;34 total glucose spikes, 295 total non-spikes&quot;</code></pre>
+print(paste(peaks, &quot; total glucose spikes&quot; , sep = &quot;&quot;))</code></pre>
+<pre><code>[1] &quot;69 total glucose spikes&quot;</code></pre>
 </div>
 <div id="distribution-of-glucose-concentrations" class="section level3">
 <h3>distribution of glucose concentrations</h3>
 <pre class="r"><code>
 par(mfrow = c(1,2))
-plot(cgm.meal.features$GlucoseValue, main = &quot;Glucose concentration during spike&quot;, ylab = &quot;glucose concentration (mg/dL)&quot;)
-hist(cgm.meal.features$GlucoseValue, main = &quot;Glucose concentration during spike&quot;, xlab = &quot;glucose concentration (mg/dL)&quot;)</code></pre>
+plot(cgm.meal.features$GlucoseValue, main = &quot;Glucose concentration during spike&quot;, ylab = &quot;glucose concentration (mg/dL)&quot;, cex.main = 0.7)
+hist(cgm.meal.features$GlucoseValue, main = &quot;Glucose concentration during spike&quot;, xlab = &quot;glucose concentration (mg/dL)&quot;, cex.main = 0.7)</code></pre>
 <p><img src="figure/2_featureSelection.Rmd/concentrations-1.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>
-plot(cgm.meal.features$glucoseChange, main = &quot;Magnitude of Blood Sugar Spikes&quot;, ylab = &quot;glucose concentration (mg/dL)&quot;)
-hist(cgm.meal.features$glucoseChange, main = &quot;Magnitude of Blood Sugar Spikes&quot;, xlab = &quot;glucose concentration (mg/dL)&quot;)</code></pre>
+plot(cgm.meal.features$glucoseChange, main = &quot;Magnitude of Blood Sugar Spikes&quot;, ylab = &quot;glucose concentration (mg/dL)&quot;, cex.main = 0.7)
+hist(cgm.meal.features$glucoseChange, main = &quot;Magnitude of Blood Sugar Spikes&quot;, xlab = &quot;glucose concentration (mg/dL)&quot;, cex.main = 0.7)</code></pre>
 <p><img src="figure/2_featureSelection.Rmd/concentrations-2.png" width="672" style="display: block; margin: auto;" /></p>
 </div>
 </div>
@@ -404,20 +398,20 @@ predictors &lt;- cgm.meal.features[,names(cgm.meal.features) %in% features]</cod
 <div id="final-feature-matrix" class="section level3">
 <h3>Final feature matrix</h3>
 <pre class="r"><code>head(predictors)</code></pre>
-<pre><code>   timeChange carbohydrates glycemicIndex AM fruit grain inulin banana
-30          0      3.166204     -0.301112  0     0     0      0      0
-31          0      3.166204     -0.301112  0     0     0      0      0
-32          0      3.166204     -0.301112  0     0     0      0      0
-33          0      3.166204     -0.301112  0     0     0      0      0
-34          0      3.166204     -0.301112  0     0     0      0      0
-35          0      3.166204     -0.301112  0     0     0      0      0
-   wine last_meal_TIME diversity
-30    0            300         1
-31    0            300         1
-32    0            300         1
-33    0            300         1
-34    0            300         1
-35    0            300         1</code></pre>
+<pre><code>    timeChange carbohydrates glycemicIndex AM fruit grain inulin banana
+46         100      3.166204     -0.301112  0     0     0      0      0
+235        305     52.062400     20.096800  1     1     0      0      1
+347         95     60.141921      1.353600  0     0     1      0      0
+463        100     26.951200     11.363400  1     1     0      0      1
+521         50     45.000000      4.490000  0     0     1      0      0
+586         40     52.328212      0.345464  0     0     1      0      0
+    wine last_meal_TIME diversity
+46     0       300.0000         1
+235    0       298.3333         2
+347    1        60.0000         3
+463    0       427.5000         2
+521    0       175.0000         2
+586    1        37.5000         6</code></pre>
 </div>
 </div>
 <div id="data-transformation" class="section level1">

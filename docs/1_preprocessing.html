@@ -272,15 +272,15 @@ div.tocify {
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="index.html">predictingGlucoseSpikesPrelim</a>
+      <a class="navbar-brand" href="index.html">predicting Glucose Spikes</a>
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">Home</a>
+  <a href="index.html">Overview</a>
 </li>
 <li>
-  <a href="about.html">About</a>
+  <a href="about.html">Results</a>
 </li>
 <li>
   <a href="license.html">License</a>
@@ -313,10 +313,10 @@ div.tocify {
 shared across the workflowr files. -->
 <!-- Update knitr chunk options -->
 <!-- Insert the date the file was last updated -->
-<p><strong>Last updated:</strong> 2017-09-11</p>
+<p><strong>Last updated:</strong> 2017-09-13</p>
 <!-- Insert the code version (Git commit SHA1) if Git repository exists and R
  package git2r is installed -->
-<p><strong>Code version:</strong> c976020</p>
+<p><strong>Code version:</strong> 2c087f8</p>
 <!-- Add your analysis here -->
 <p></br></br></p>
 <div id="load-libraries" class="section level1">
@@ -368,41 +368,48 @@ ggplot(example.CGM) +
 <h3>preview of food logs</h3>
 <pre class="r"><code>current.table = food.logs[sample(1:nrow(food.logs), 10), ]
 head(current.table)
-                      description   food_id entry_date  category
-1262          Whole Psyllium Husk 162715011    1/28/15      &lt;NA&gt;
-1096             Roasted  Grilled 156978150    3/14/15    Dinner
-1275          Whole Psyllium Husk 212702230   10/27/15    Dinner
-656   Fresh Squeezed Orange Juice 162966925    3/14/15 Breakfast
-239              Center Cut Bacon 188896850    9/26/15 Breakfast
-467  Coffee - Brewed from grounds 155741288     5/7/16 Breakfast
-                                 amount calories total_fat
-1262                0.5 tablespoon (4g)      745        NA
-1096                        1 drumstick      541  15.00000
-1275                0.5 tablespoon (4g)      992        NA
-656                           0.333 cup      752   0.17200
-239                            2 Slices      443  15.00000
-467  1.8 serving(s) of  1 cup (8 fl oz)      768   0.08532
-     polyunsaturated_fat monounsaturated_fat trans_fat cholesterol  sodium
-1262                  NA                  NA        NA          NA      NA
-1096                  NA                  NA        NA       157.5 172.500
-1275                  NA                  NA        NA          NA      NA
-656             0.034400             0.03100         0         0.0   0.860
-239             0.000000             0.00000         0        45.0 900.000
-467             0.004266             0.06399         0         0.0   8.532
-     potassium carbs fiber sugar  protein vitamin_a vitamin_c calcium
-1262        NA 10.00 10.00    NA       NA        NA        NA      NA
-1096        NA    NA    NA    NA 27.00000         3         0  3.0000
-1275        NA  2.00  2.00    NA       NA        NA        NA      NA
-656    172.000  8.94  1.72     7  1.00000         3        72  1.0000
-239      0.000  0.00  0.00     0 15.00000         0         0  0.0000
-467    209.034  0.00  0.00     0  0.51192         0         0  0.8532
-          iron Food.group     food  species additional_desc
-1262        NA      fiber psyllium plantago                
-1096 6.0000000       meat  chicken                drumstick
-1275        NA      fiber psyllium plantago                
-656  1.0000000      fruit   orange                         
-239  0.0000000       meat      pig                         
-467  0.2370002      drink   coffee                         </code></pre>
+                            description   food_id entry_date  category
+2712                         White Rice 169888484    1/29/15      &lt;NA&gt;
+2356 Rice - White  medium-grain  cooked 219188109     8/3/15    Dinner
+2742                Whole Psyllium Husk 212702230    5/21/16    Dinner
+1412               Garlic &amp; Herb Cheese 131419740   12/19/14      &lt;NA&gt;
+515                              Cereal 160355225    3/29/15 Breakfast
+1005       Coffee - Brewed from grounds 155741288     1/9/15      &lt;NA&gt;
+                                     amount calories total_fat
+2712                                  1 cup   205.00   0.40000
+2356                                  1 cup   169.26   0.27342
+2742 2.5 serving(s) of  0.5 tablespoon (4g)    37.50        NA
+1412                                1 wedge    50.00   3.00000
+515                                   1 cup   200.00   4.00000
+1005                        1 cup (8 fl oz)     4.74   0.09480
+     polyunsaturated_fat monounsaturated_fat trans_fat cholesterol sodium
+2712            0.100000             0.10000         0           0   2.00
+2356            0.072912             0.08463         0           0   0.00
+2742                  NA                  NA        NA          NA     NA
+1412                  NA                  NA        NA          15 220.00
+515             1.000000             1.00000         0           0 280.00
+1005            0.004740             0.07110         0           0   9.48
+     potassium    carbs   fiber sugar protein vitamin_a vitamin_c calcium
+2712    55.000 45.00000  0.6000   0.1 4.20000         0         0  0.0000
+2356    37.758 37.22418  0.3906   0.0 3.09876         0         0  0.3906
+2742        NA 10.00000 10.0000    NA      NA        NA        NA      NA
+1412        NA  0.50000  0.0000   0.0 3.00000         2         0 11.0000
+515    360.000 40.00000  6.0000   2.0 6.00000        20        20 20.0000
+1005   232.260  0.00000  0.0000   0.0 0.56880         0         0  0.9480
+           iron              Food.group                food  species
+2712  2.0000000                   grain                rice         
+2356 10.7776694                   grain                rice         
+2742         NA                   fiber            psyllium plantago
+1412  0.0000000         dairy,vegetable       cheese,garlic         
+515  90.0000000 grain,grain,grain,grain wheat,corn,oat,rice         
+1005  0.2633335                   drink              coffee         
+           additional_desc
+2712                      
+2356                      
+2742                      
+1412                      
+515  Cereal life by quaker
+1005                      </code></pre>
 </div>
 <div id="preview-of-food-timing-and-meal-descriptions" class="section level3">
 <h3>preview of food timing and meal descriptions</h3>
@@ -486,23 +493,28 @@ ggplot(cgm.readings) +
 </div>
 <div id="data-exclusion" class="section level1">
 <h1>Data exclusion</h1>
-<pre class="r"><code># keep only dates with recorded meal times
+<pre class="r"><code># keep only glucose spikes
+# --------------------------
+cgm.readings = cgm.readings[cgm.readings$peak == peak.type,]
+
+# keep only dates with recorded meal times
+# --------------------------------
 dates.with.meal.times &lt;- unique(food.times$Date)
 cgm.readings &lt;- cgm.readings[which(cgm.readings$GlucoseDisplayDate %in% dates.with.meal.times),] 
 
 # count number of peaks
 peaks.remaining = length(cgm.readings[which(cgm.readings$peak %in% peak.type),]$peak)
-print(paste(number.peaks - peaks.remaining, &quot;peaks excluded because lacked any meal data&quot;))</code></pre>
-<pre><code>[1] &quot;60 peaks excluded because lacked any meal data&quot;</code></pre>
+print(paste(peaks.remaining, &quot;peaks remaining with meal data&quot;))</code></pre>
+<pre><code>[1] &quot;201 peaks remaining with meal data&quot;</code></pre>
 <pre class="r"><code># remove travel from glucose data and food timing
+# --------------------------------
 cgm.readings = removeTravelDates(cgm.readings, travel.file, TZ.path)
 food.times = food.times[food.times$Date %in% cgm.readings$GlucoseDisplayDate, ] 
 
-
 # print number of days removed from travel
 peaks.post.travel = length(cgm.readings[which(cgm.readings$peak %in% peak.type),]$peak)
-print(paste(peaks.remaining - peaks.post.travel, &quot;peaks excluded because occured during travel&quot;))</code></pre>
-<pre><code>[1] &quot;80 peaks excluded because occured during travel&quot;</code></pre>
+print(paste(peaks.post.travel, &quot;peaks remaining after excluding travel&quot;))</code></pre>
+<pre><code>[1] &quot;157 peaks remaining after excluding travel&quot;</code></pre>
 <p></br></br></p>
 <div id="session-information" class="section level2">
 <h2>Session information</h2>

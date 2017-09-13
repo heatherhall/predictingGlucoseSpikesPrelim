@@ -172,15 +172,15 @@ $(document).ready(function () {
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="index.html">predictingGlucoseSpikesPrelim</a>
+      <a class="navbar-brand" href="index.html">predicting Glucose Spikes</a>
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">Home</a>
+  <a href="index.html">Overview</a>
 </li>
 <li>
-  <a href="about.html">About</a>
+  <a href="about.html">Results</a>
 </li>
 <li>
   <a href="license.html">License</a>
@@ -214,7 +214,7 @@ $(document).ready(function () {
 <!-- [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm -->
 <!-- [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/ -->
 <center>
-<img src="figures/cgmExample.png" alt="Figure 1: Representative Day in Data Set Blood sugar levels are shown varying over a single day with red and blue dots representing spikes and minimums, respectively. The approximate time windows for which dietary information is collected for each blood sugar spike are shown alternating in yellow and purple. As shown, the food entered into the dietary log (shown here with black lines) tends to fall in the windows prior to each blood guar spike. Note that some spikes have no dietary information, which may be the result of missing diet log information and so these windows were discarded from the models." style="width:60.0%" />
+<img src="addedFigures/cgmExample.png" alt="Figure 1: Representative Day in Data Set Blood sugar levels are shown varying over a single day with red and blue dots representing spikes and minimums, respectively. The approximate time windows for which dietary information is collected for each blood sugar spike are shown alternating in yellow and purple. As shown, the food entered into the dietary log (shown here with black lines) tends to fall in the windows prior to each blood guar spike. Note that some spikes have no dietary information, which may be the result of missing diet log information and so these windows were discarded from the models." style="width:60.0%" />
 </center>
 <div id="dataset" class="section level2">
 <h2><strong>1. DATASET</strong></h2>
@@ -223,7 +223,7 @@ $(document).ready(function () {
 </div>
 <div id="data-preprocessing" class="section level2">
 <h2><strong>2. DATA PREPROCESSING</strong></h2>
-<p>In order to properly relate the two datasets, the blood sugar measurements were compressed into minimum and maximum blood sugar levels, with maximum values hereby referred to as “spikes.” Windows were created starting from thirty minutes before a blood sugar level minimum until a spike, assuming that only events in this time window affected the spike. From this only windows that contained dietary log information were used to build models. This outcome variable was chosen because the height of the spike appeared to be both normally distributed and independent. See Figure 1 one the next for a pictorial representation. After processing, there were 94 glucose spikes with dietary information.</p>
+<p>In order to properly relate the two datasets, the blood sugar measurements were compressed into minimum and maximum blood sugar levels, with maximum values hereby referred to as “spikes.” Windows were created starting from thirty minutes before a blood sugar level minimum until a spike, assuming that only events in this time window affected the spike. From this only windows that contained dietary log information were used to build models. This outcome variable was chosen because the height of the spike appeared to be both normally distributed and independent. See Figure 1 one the next for a pictorial representation. After processing, there were 69 glucose spikes with dietary information.</p>
 <p><em>Click on this <a href="1_preprocessing.html">link</a> to see my analysis</em> <!-- Displays message on index page: Click on this link to see my results. --></p>
 <p></br></br></p>
 </div>
@@ -239,7 +239,7 @@ $(document).ready(function () {
 <h2><strong>4. DATA TRANSFORMATION</strong></h2>
 <p>No additional transformations were applied to the predictors, with the exception of the transformations described previously. Many transformations were attempted (log, exponentials, factors), but the best relationships appeared to be linear as shown. The relationships appeared weak, but appeared significant enough to include all predictors in the models.</p>
 <center>
-<img src="figures/predictorsVsOutcome.png" alt="Figure 2: Relationship between predictors and outcome. Y-axis shows the height of the blood sugar spike, while the x-axis shows each predictor. Diversity and inulin appear to reduce the height of the blood sugar spike, while carbohydrates time since last meal appear to increase the height of the blood sugar spike." />
+<img src="figure/2_featureSelection.Rmd/predictorOutcomes-1.png" alt="Figure 2: Relationship between predictors and outcome. Y-axis shows the height of the blood sugar spike, while the x-axis shows each predictor. Diversity and inulin appear to reduce the height of the blood sugar spike, while carbohydrates time since last meal appear to increase the height of the blood sugar spike." />
 </center>
 <p></br></br></p>
 </div>
@@ -248,27 +248,27 @@ $(document).ready(function () {
 <p>Prior to building models, the predictors were checked for interactions through graphing and assessing the significance of each interaction using a bonferroni corrected Pearson correlation test (Table 1). All of the predictors showed some significant interaction with another predictor, however, many of these correlation values were week. Only significant interactions with correlation coefficients greater than 0.5 were used in the models.</p>
 <p><em>Click on this <a href="3_dataMining">link</a> to see my analysis</em></p>
 <center>
-<img src="figures/interactions.png" alt="Table 1: Interactions Between Predictors: All of the predictors used for this model had some form of significant interaction with another predictor. These interaction terms were used in the models and likely reduced the ability of each model to accurately predict the height of the glucose spike. Once more predictors are included in the model, such as blood pressure and activity, the predictive power of these models will likely increase." style="width:50.0%" />
+<img src="figure/3_dataMining.Rmd/correlation%20table-1.png" alt="Table 1: Interactions Between Predictors: All of the predictors used for this model had some form of significant interaction with another predictor. These interaction terms were used in the models and likely reduced the ability of each model to accurately predict the height of the glucose spike. Once more predictors are included in the model, such as blood pressure and activity, the predictive power of these models will likely increase." style="width:50.0%" />
 </center>
 <div id="linear-regression" class="section level4">
 <h4><strong>5.1 LINEAR REGRESSION</strong></h4>
 <p>The linear relationship between the predictors and the outcome suggested that a simple linear model may best fit the data. Before fitting a linear regression model, best subset selection was performed since the number of predictors, including interactions, was more than 10% of the observations. The regsubsets() function from the “leaps” package in R was used to select the best subset predictors using the Cp estimate of MSE on the entire dataset (Figure 3). The selected predictors were then used to calculate the linear regression model using the lm() package provided by R.</p>
 <center>
-<img src="figures/bestSubsetSelection.png" alt="Figure 3: Best Subset Selection for Linear Regression The lowest Cp estimate of MSE for the linear model using best subset selection was the model using 4 predictors (as shown by the red dot). These predictors were banana, wine, glycemicIndex:fruit, glycemicIndex:inulin." style="width:50.0%" />
+<img src="figure/3_dataMining.Rmd/bestsubset-1.png" alt="Figure 3: Best Subset Selection for Linear Regression The lowest Cp estimate of MSE for the linear model using best subset selection was the model using 4 predictors (as shown by the red dot). These predictors were banana, wine, glycemicIndex:fruit, glycemicIndex:inulin." style="width:50.0%" />
 </center>
 </div>
 <div id="k-nearest-neighbor" class="section level4">
 <h4><strong>5.2 K-NEAREST NEIGHBOR</strong></h4>
 <p>In order to determine test a model with more flexibility than linear regression, k-nearest neighbor was first attempted to fit the data. The number of clusters for the model was chosen using the function train.kknn() from the R package “kknn,” selecting up to 21 clusters with an “optimal” kernel for the search. For the entire dataset, the mean squared error started to plateau around 11 clusters (Figure 4). Thus, a k-nearest neighbor model with k = 11 was built using the function kknn() from the same package. This model included all of the predictors and all significant interactions described above (see DATA MINING), but forward selection will be used in the future to determine which predictors to include in the model</p>
 <center>
-<img src="figures/optimizingK.png" alt="Figure 4: Selecting number of clusters for K-nearest neighbor. The MSE for a model of the entire dataset begins to plateau at k = 11, highlighted by the red dot." style="width:50.0%" />
+<img src="figure/3_dataMining.Rmd/kNearestNeighbor-1.png" alt="Figure 4: Selecting number of clusters for K-nearest neighbor. The MSE for a model of the entire dataset begins to plateau at k = 11, highlighted by the red dot." style="width:50.0%" />
 </center>
 </div>
 <div id="random-forest" class="section level4">
 <h4><strong>5.3 RANDOM FOREST</strong></h4>
 <p>Random forest were chosen as the third model in order to try a tree-based model for fitting the data. The randomForest() function from the R package “randomForest” was used to build the model. This function performs out-of-bag validation to select predictors for the model and so all predictors and interactions described above (see DATA MINING) were included.</p>
 <center>
-<img src="figures/variableImportanceRF.png" alt="Figure 5: Most Influential Variables for Random Forest Pictured here is the relatively importance of the variables in random forest (above) and boosting (right). The %IncMSE is increase in MSE upon removing the variable from the model and IncNodePurity is the decrease in node purity upon removing the variable from the model. The time for a spike to occur and the time since the last meal are the most important predictors of the height of a glucose spike in this model." style="width:70.0%" />
+<img src="figure/3_dataMining.Rmd/varImportanceRF-2.png" alt="Figure 5: Most Influential Variables for Random Forest Pictured here is the relatively importance of the variables in random forest (above) and boosting (right). The %IncMSE is increase in MSE upon removing the variable from the model and IncNodePurity is the decrease in node purity upon removing the variable from the model. The time for a spike to occur and the time since the last meal are the most important predictors of the height of a glucose spike in this model." style="width:70.0%" />
 </center>
 </div>
 <div id="boosted-regression" class="section level4">
@@ -281,7 +281,7 @@ $(document).ready(function () {
 <h2><strong>6. INTERPRETATION AND EVALUATION</strong></h2>
 <p>After tuning the parameters and selecting the variables as described above, each of the models was tested to determine performance as measured by the root mean squared error (RMSE). The RMSE was calculated with leave-one-out cross-validation. More specifically, each model was trained on (n-1) observations and the RMSE was calculated for the remaining observation. This was repeated for every observation and the average of the RMSE is reported in Table 2 below.</p>
 <center>
-<img src="figures/LOOCV.png" alt="Table 2: Comparing Model Performance The RMSE is similar for all models, but the random forest model (highlighted) performs best with a RMSE of 25.15" style="width:40.0%" />
+<img src="figure/3_dataMining.Rmd/rmseResults-1.png" alt="Table 2: Comparing Model Performance The RMSE is similar for all models, but the random forest model (highlighted) performs best with a RMSE of 22.34" style="width:40.0%" />
 </center>
 </div>
 
